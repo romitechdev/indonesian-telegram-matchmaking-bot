@@ -1,0 +1,21 @@
+[Unit]
+Description=LoveMatchID Telegram Bot
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=romi
+Group=romi
+WorkingDirectory=/home/romi/lovematchid
+EnvironmentFile=/home/romi/lovematchid/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStartPre=/usr/bin/docker compose -f /home/romi/lovematchid/docker-compose.yml up -d mongodb
+ExecStart=/home/romi/lovematchid/.venv/bin/python /home/romi/lovematchid/main.py
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
