@@ -1,0 +1,21 @@
+[Unit]
+Description=LoveMatchID Dashboard Web
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=romi
+Group=romi
+WorkingDirectory=/home/romi/lovematchid
+EnvironmentFile=/home/romi/lovematchid/.env
+Environment=DASHBOARD_HOST=0.0.0.0
+Environment=DASHBOARD_PORT=8090
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/romi/lovematchid/.venv/bin/python /home/romi/lovematchid/dashboard_web.py
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

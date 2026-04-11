@@ -5,6 +5,8 @@ from ..keyboards import admin_menu_keyboard, main_menu_keyboard, next_profile_ke
 from ..services.matching_service import matching_service
 from ..services.user_service import user_service
 from ..utils import (
+    build_profile_link_by_id,
+    escape_html,
     get_ban_notice,
     get_current_match,
     get_target_gender,
@@ -12,7 +14,36 @@ from ..utils import (
     is_admin,
     is_temporarily_banned,
     format_username,
+    telegram_call_with_retry,
 )
+
+
+async def send_daily_limit_notice(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    limit = matching_service.get_daily_view_limit()
+    await telegram_call_with_retry(
+        lambda: context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=(
+                f"⏳ Batas lihat profil harian kamu sudah habis ({limit} profil/hari).\n"
+                "Limit akan reset otomatis setiap hari. Coba lagi besok ya~"
+            ),
+            reply_markup=main_menu_keyboard(),
+        )
+    )
+
+
+async def disabled_like_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Fitur Like sudah dinonaktifkan ya. Kalau profilnya kurang cocok, bisa lanjut atau report.",
+        reply_markup=next_profile_keyboard(),
+    )
+
+
+async def disabled_chat_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Fitur Match/Chat otomatis sudah dinonaktifkan ya.",
+        reply_markup=next_profile_keyboard(),
+    )
 
 
 async def find_nearby_friends(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -27,6 +58,7 @@ async def find_nearby_friends(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     user_service.sync_identity(user)
     context.user_data.pop("pending_report", None)
+    context.user_data.pop("recent_mutual_match_target_id", None)
     current_user = user_service.get_active_profile(user.id)
 
     if not current_user:
@@ -60,6 +92,12 @@ async def find_nearby_friends(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
         return
 
+    if not matching_service.has_remaining_daily_views(user.id):
+        context.user_data.pop("matches", None)
+        context.user_data.pop("current_match_index", None)
+        await send_daily_limit_notice(update, context)
+        return
+
     matches = matching_service.find_matches_for_user(current_user)
 
     if not matches:
@@ -78,8 +116,16 @@ async def find_nearby_friends(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def show_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    matches = context.user_data["matches"]
-    current_index = context.user_data["current_match_index"]
+    matches = context.user_data.get("matches")
+    current_index = context.user_data.get("current_match_index")
+
+    if not matches or current_index is None:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Belum ada sesi pencarian aktif. Klik 🔍 Cari Teman dulu ya~",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
 
     if current_index >= len(matches):
         await context.bot.send_message(
@@ -89,6 +135,13 @@ async def show_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=main_menu_keyboard(),
             parse_mode="Markdown",
         )
+        return
+
+    if not matching_service.has_remaining_daily_views(update.effective_user.id):
+        context.user_data.pop("matches", None)
+        context.user_data.pop("current_match_index", None)
+        context.user_data.pop("pending_report", None)
+        await send_daily_limit_notice(update, context)
         return
 
     match = matches[current_index]
@@ -104,11 +157,25 @@ async def show_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    source_lat = current_user.get("latitude")
+    source_lon = current_user.get("longitude")
+    target_lat = match.get("latitude")
+    target_lon = match.get("longitude")
+    if source_lat is None or source_lon is None or target_lat is None or target_lon is None:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="Profil ini belum punya data lokasi lengkap. Kita lanjut ke profil berikutnya ya~",
+            reply_markup=next_profile_keyboard(),
+        )
+        context.user_data["current_match_index"] += 1
+        await show_match(update, context)
+        return
+
     distance = haversine(
-        current_user["latitude"],
-        current_user["longitude"],
-        match["latitude"],
-        match["longitude"],
+        source_lat,
+        source_lon,
+        target_lat,
+        target_lon,
     )
 
     if distance < 1:
@@ -116,32 +183,72 @@ async def show_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         distance_str = f"📍 {distance:.1f} km"
 
-    caption = (
-        f"✨ *{match['name']}*, {match['age']} {'♂️' if match['gender'] == 'Cowok' else '♀️'}\n"
-        f"{distance_str}\n\n"
-        f"_{match['description']}_\n\n"
+    compatibility_score = match.get("compatibility_score", 0)
+    gender_icon = (
+        "♂️"
+        if match.get("gender") == "Cowok"
+        else "♀️" if match.get("gender") == "Cewek" else "👤"
     )
+    escaped_name = escape_html(match.get("name", "Tanpa Nama"))
+    escaped_age = escape_html(match.get("age", "?"))
+    caption_lines = [
+        f"✨ {escaped_name}, {escaped_age} {gender_icon}",
+        distance_str,
+    ]
+    if compatibility_score:
+        caption_lines.append(f"💞 Kecocokan jawaban: {compatibility_score}/3")
 
-    if match.get("username"):
-        caption += f"💬 Chat: {format_username(match.get('username'))}"
+    description = (match.get("description") or "").strip()
+    if description:
+        caption_lines.extend(["", escape_html(description)])
+
+    caption = "\n".join(caption_lines) + "\n\n"
+
+    profile_link = build_profile_link_by_id(match.get("telegram_id"))
+    if profile_link:
+        caption += f'💬 Chat: <a href="{profile_link}">Buka profil via ID Telegram</a>'
     else:
         caption += (
-            "📵 Dia belum punya username Telegram\n"
-            "👉 Minta dia aktifkan username dulu biar bisa langsung di-chat"
+            "👉 ID Telegram tidak tersedia"
         )
 
-    await context.bot.send_photo(
-        chat_id=update.effective_chat.id,
-        photo=match["photo_file_id"],
-        caption=caption,
-        reply_markup=next_profile_keyboard(),
-        parse_mode="Markdown",
-    )
+    photo_file_id = match.get("photo_file_id")
+    if photo_file_id:
+        try:
+            await telegram_call_with_retry(
+                lambda: context.bot.send_photo(
+                    chat_id=update.effective_chat.id,
+                    photo=photo_file_id,
+                    caption=caption,
+                    parse_mode="HTML",
+                    reply_markup=next_profile_keyboard(),
+                )
+            )
+        except Exception:
+            await telegram_call_with_retry(
+                lambda: context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=caption,
+                    parse_mode="HTML",
+                    reply_markup=next_profile_keyboard(),
+                )
+            )
+    else:
+        await telegram_call_with_retry(
+            lambda: context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=caption,
+                parse_mode="HTML",
+                reply_markup=next_profile_keyboard(),
+            )
+        )
 
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="✩♬₊˚.🎧⋆☾✩♬₊˚.🎧⋆☾⋆⁺₊✧",
-        reply_markup=next_profile_keyboard(),
+    await telegram_call_with_retry(
+        lambda: context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="✩♬₊˚.🎧⋆☾✩♬₊˚.🎧⋆☾⋆⁺₊✧",
+            reply_markup=next_profile_keyboard(),
+        )
     )
 
 
@@ -156,6 +263,139 @@ async def next_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop("pending_report", None)
     context.user_data["current_match_index"] += 1
     await show_match(update, context)
+
+
+async def like_current_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if is_admin(user):
+        await update.message.reply_text(
+            "Fitur ini khusus akun user.",
+            reply_markup=admin_menu_keyboard(),
+        )
+        return
+
+    profile = user_service.get_profile(user.id)
+    if not profile:
+        await update.message.reply_text(
+            "Profil kamu tidak ditemukan. Klik /start dulu ya~",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    if is_temporarily_banned(profile):
+        await update.message.reply_text(
+            get_ban_notice(profile),
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    match = get_current_match(context)
+    if not match:
+        await update.message.reply_text(
+            "Belum ada profil aktif. Klik 🔍 Cari Teman dulu ya~",
+            reply_markup=main_menu_keyboard(),
+        )
+        return
+
+    result = matching_service.like_profile(profile, match)
+    if result["status"] == "invalid_target":
+        await update.message.reply_text(
+            "Profil ini belum bisa di-like. Coba profil berikutnya ya~",
+            reply_markup=next_profile_keyboard(),
+        )
+        return
+
+    if result["is_match"]:
+        target_telegram_id = match.get("telegram_id")
+        context.user_data["recent_mutual_match_target_id"] = target_telegram_id
+
+        target_profile = (
+            user_service.get_profile(target_telegram_id)
+            if target_telegram_id is not None
+            else None
+        )
+        icebreakers = matching_service.generate_icebreakers(profile, target_profile or match)
+        if match.get("telegram_id") is not None:
+            contact_line = f"Kontak dia via Telegram ID: {match['telegram_id']}"
+        else:
+            contact_line = "Kontak dia belum tersedia."
+
+        if result.get("is_new_match"):
+            await update.message.reply_text(
+                "🎉 MATCH! Kalian saling like 💖\n"
+                f"{contact_line}\n\n"
+                "Icebreaker buat mulai chat:\n"
+                f"1) {icebreakers[0]}\n"
+                f"2) {icebreakers[1]}\n"
+                f"3) {icebreakers[2]}\n\n"
+                "Setelah chat jalan, klik tombol 💬 Sudah Chat ya.",
+                reply_markup=next_profile_keyboard(),
+            )
+
+            liker_name = profile.get("name", "Seseorang")
+            liker_telegram_id = profile.get("telegram_id", "-")
+            notify_icebreakers = matching_service.generate_icebreakers(target_profile or match, profile)
+            if target_telegram_id is not None:
+                try:
+                    await context.bot.send_message(
+                        chat_id=target_telegram_id,
+                        text=(
+                            f"🎉 Kamu MATCH dengan {liker_name}!\n"
+                            f"Kontak Telegram ID: {liker_telegram_id}\n\n"
+                            "Coba mulai dari icebreaker ini:\n"
+                            f"1) {notify_icebreakers[0]}\n"
+                            f"2) {notify_icebreakers[1]}\n"
+                            f"3) {notify_icebreakers[2]}"
+                        ),
+                        reply_markup=main_menu_keyboard(),
+                    )
+                except Exception:
+                    pass
+        else:
+            await update.message.reply_text(
+                "💖 Kalian sudah pernah mutual match sebelumnya."
+                f"\n{contact_line}\n"
+                "Kalau chat sudah jalan, klik 💬 Sudah Chat ya.",
+                reply_markup=next_profile_keyboard(),
+            )
+    else:
+        await update.message.reply_text(
+            f"💖 Kamu sudah like {match.get('name', 'profil ini')}!",
+            reply_markup=next_profile_keyboard(),
+        )
+
+    if "matches" in context.user_data and "current_match_index" in context.user_data:
+        context.user_data["current_match_index"] += 1
+        await show_match(update, context)
+
+
+async def mark_chat_started(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if is_admin(user):
+        await update.message.reply_text(
+            "Fitur ini khusus akun user.",
+            reply_markup=admin_menu_keyboard(),
+        )
+        return
+
+    target_telegram_id = context.user_data.get("recent_mutual_match_target_id")
+    if target_telegram_id is None:
+        await update.message.reply_text(
+            "Belum ada match terbaru yang bisa dicatat. Like dulu sampai dapat mutual match ya~",
+            reply_markup=next_profile_keyboard(),
+        )
+        return
+
+    matching_service.mark_chat_started(
+        first_telegram_id=user.id,
+        second_telegram_id=target_telegram_id,
+        started_by=user.id,
+    )
+
+    await update.message.reply_text(
+        "✅ Dicatat! Semoga obrolannya lancar ya ✨",
+        reply_markup=main_menu_keyboard(),
+    )
 
 
 async def block_current_match(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -1,7 +1,32 @@
-from datetime import datetime, timezone
+import asyncio
+from html import escape
+from datetime import datetime, timedelta, timezone
 from math import atan2, cos, radians, sin, sqrt
+from typing import Awaitable, Callable, TypeVar
+from zoneinfo import ZoneInfo
 
-from .config import ADMIN_TELEGRAM_IDS, ADMIN_USERNAMES
+from telegram.error import NetworkError, RetryAfter, TimedOut
+
+from .config import (
+    ADMIN_TELEGRAM_IDS,
+    MATCH_RESET_TIMEZONE,
+    TELEGRAM_RETRY_BASE_DELAY_SECONDS,
+    TELEGRAM_SEND_RETRIES,
+    logger,
+)
+
+
+ResultType = TypeVar("ResultType")
+
+
+def _resolve_match_timezone():
+    try:
+        return ZoneInfo(MATCH_RESET_TIMEZONE)
+    except Exception:
+        return timezone.utc
+
+
+MATCH_RESET_TZ = _resolve_match_timezone()
 
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -30,18 +55,33 @@ def format_username(username):
     return f"@{normalized}"
 
 
+def escape_html(value):
+    """Escape dynamic text for Telegram HTML parse mode."""
+    if value is None:
+        return ""
+    return escape(str(value), quote=False)
+
+
+def build_match_chat_draft(sender_name):
+    """Build default Lovematch chat opener with sender name when available."""
+    clean_name = " ".join(str(sender_name or "").strip().split())
+    if clean_name:
+        return f"Hai! Aku {clean_name} dari Lovematchbot ❤️"
+    return "Hai! Aku dari Lovematchbot ❤️"
+
+
+def build_profile_link_by_id(telegram_id):
+    """Build Telegram profile link by numeric ID."""
+    if telegram_id is None:
+        return None
+    return f"tg://user?id={telegram_id}"
+
+
 def is_admin(user):
-    """Check if user is admin by username or telegram ID"""
+    """Check if user is admin by telegram ID"""
     if not user:
         return False
-
-    if user.id in ADMIN_TELEGRAM_IDS:
-        return True
-
-    normalized = normalize_username(user.username)
-    if not normalized:
-        return False
-    return normalized in ADMIN_USERNAMES
+    return user.id in ADMIN_TELEGRAM_IDS
 
 
 def now_utc():
@@ -56,6 +96,24 @@ def ensure_utc(value):
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value.astimezone(timezone.utc)
+
+
+def get_local_day_key(reference_time=None):
+    """Return local day key (YYYY-MM-DD) based on configured reset timezone."""
+    current_time = ensure_utc(reference_time or now_utc())
+    return current_time.astimezone(MATCH_RESET_TZ).date().isoformat()
+
+
+def get_local_day_window(reference_time=None):
+    """Return UTC start/end timestamps for current local day window."""
+    current_time = ensure_utc(reference_time or now_utc())
+    local_time = current_time.astimezone(MATCH_RESET_TZ)
+    day_start_local = local_time.replace(hour=0, minute=0, second=0, microsecond=0)
+    next_day_start_local = day_start_local + timedelta(days=1)
+    return (
+        day_start_local.astimezone(timezone.utc),
+        next_day_start_local.astimezone(timezone.utc),
+    )
 
 
 def format_utc(value):
@@ -129,3 +187,31 @@ def get_current_match(context):
     if current_index < 0 or current_index >= len(matches):
         return None
     return matches[current_index]
+
+
+async def telegram_call_with_retry(
+    call_factory: Callable[[], Awaitable[ResultType]],
+) -> ResultType:
+    max_attempts = TELEGRAM_SEND_RETRIES + 1
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return await call_factory()
+        except RetryAfter as exc:
+            if attempt >= max_attempts:
+                raise
+            retry_after_seconds = float(getattr(exc, "retry_after", 0) or 0)
+            delay_seconds = max(retry_after_seconds, TELEGRAM_RETRY_BASE_DELAY_SECONDS)
+        except (TimedOut, NetworkError):
+            if attempt >= max_attempts:
+                raise
+            delay_seconds = TELEGRAM_RETRY_BASE_DELAY_SECONDS * attempt
+
+        logger.warning(
+            "Telegram request retry (%s/%s), waiting %.2fs",
+            attempt,
+            max_attempts,
+            delay_seconds,
+        )
+        await asyncio.sleep(delay_seconds)
+
+    raise RuntimeError("Unreachable retry path")

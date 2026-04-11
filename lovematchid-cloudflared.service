@@ -1,0 +1,18 @@
+[Unit]
+Description=Cloudflare Tunnel for LoveMatchID Dashboard
+Wants=network-online.target
+After=network-online.target lovematchid-dashboard.service
+Requires=lovematchid-dashboard.service
+
+[Service]
+Type=simple
+User=romi
+Group=romi
+WorkingDirectory=/home/romi/lovematchid
+ExecStart=/usr/local/bin/cloudflared --config /home/romi/.cloudflared/config.yml tunnel run
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

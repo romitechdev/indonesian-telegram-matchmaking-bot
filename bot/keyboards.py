@@ -13,7 +13,7 @@ def main_menu_keyboard():
 
 def next_profile_keyboard():
     return ReplyKeyboardMarkup(
-        [["➡️ Lanjut", "🚫 Block"], ["⚠️ Report", "🏠 Menu Utama"]],
+        [["➡️ Lanjut", "⚠️ Report"], ["🏠 Menu Utama"]],
         resize_keyboard=True,
         one_time_keyboard=True,
     )
@@ -37,8 +37,8 @@ def admin_menu_keyboard():
         [
             ["👥 List Users", "📊 Stats"],
             ["🔍 Find User", "❌ Delete User"],
-            ["✅ Resolve Report", "⛔ Ban Sementara"],
-            ["🚨 Reports"],
+            ["🧾 Review Report", "⛔ Ban Sementara"],
+            ["🚨 Reports", "📣 Broadcast"],
             ["🏠 Main Menu"],
         ],
         resize_keyboard=True,

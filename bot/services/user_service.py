@@ -34,6 +34,13 @@ class UserService:
             "age": context_user_data["age"],
             "gender": context_user_data["gender"],
             "description": context_user_data["description"],
+            "compatibility_value": context_user_data.get("compatibility_value"),
+            "compatibility_communication_style": context_user_data.get(
+                "compatibility_communication_style"
+            ),
+            "compatibility_relationship_goal": context_user_data.get(
+                "compatibility_relationship_goal"
+            ),
             "latitude": context_user_data["latitude"],
             "longitude": context_user_data["longitude"],
             "photo_file_id": context_user_data["photo_file_id"],
@@ -75,8 +82,11 @@ class UserService:
         try:
             return self.users_repo.find_by_object_id(ObjectId(query))
         except Exception:
-            normalized_query = normalize_username(query)
-            return self.users_repo.find_by_username(normalized_query)
+            pass
+
+        if query.isdigit():
+            return self.users_repo.find_by_telegram_id(int(query))
+        return None
 
     def delete_user_by_id_text(self, user_id_text: str):
         try:
@@ -113,6 +123,9 @@ class UserService:
                 "username": 1,
             },
         )
+
+    def list_broadcast_targets(self) -> list[int]:
+        return self.users_repo.list_unique_telegram_ids()
 
 
 user_service = UserService(user_repository)

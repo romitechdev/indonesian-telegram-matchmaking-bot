@@ -13,6 +13,7 @@ from ..config import (
 from ..keyboards import admin_menu_keyboard, main_menu_keyboard
 from ..services.user_service import user_service
 from ..utils import (
+    escape_html,
     get_age_group,
     get_ban_notice,
     is_admin,
@@ -51,26 +52,27 @@ async def view_my_profile(update: Update, context: ContextTypes.DEFAULT_TYPE):
     age = profile.get("age", "?")
 
     caption = (
-        "✨ *Profile Kamu* ✨\n\n"
-        f"👤 *Nama*: {profile['name']}\n"
-        f"🎂 *Umur*: {age}\n"
-        f"🚻 *Gender*: {profile['gender']}\n"
-        f"📱 *Username*: {format_username(profile.get('username'))}\n"
-        f"📝 *Tentang Kamu*:\n_{profile['description']}_"
+        "✨ <b>Profile Kamu</b> ✨\n\n"
+        f"👤 Nama: {escape_html(profile['name'])}\n"
+        f"🪪 Telegram ID: {escape_html(profile.get('telegram_id', '-'))}\n"
+        f"🎂 Umur: {escape_html(age)}\n"
+        f"🚻 Gender: {escape_html(profile['gender'])}\n"
+        f"📱 Username (opsional): {escape_html(format_username(profile.get('username')))}\n"
+        f"📝 Tentang Kamu:\n{escape_html(profile['description'])}"
     )
 
     if profile.get("photo_file_id"):
         await update.message.reply_photo(
             photo=profile["photo_file_id"],
             caption=caption,
-            parse_mode="Markdown",
             reply_markup=main_menu_keyboard(),
+            parse_mode="HTML",
         )
     else:
         await update.message.reply_text(
             caption,
-            parse_mode="Markdown",
             reply_markup=main_menu_keyboard(),
+            parse_mode="HTML",
         )
 
 
@@ -161,9 +163,9 @@ async def edit_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_service.update_profile_fields(user.id, {"name": name})
     await update.message.reply_text(
-        f"✨ *Nama berhasil diupdate!* ✨\n\nSekarang kamu bisa dipanggil *{name}* ya~",
+        f"✨ <b>Nama berhasil diupdate!</b> ✨\n\nSekarang kamu bisa dipanggil {escape_html(name)} ya~",
         reply_markup=main_menu_keyboard(),
-        parse_mode="Markdown",
+        parse_mode="HTML",
     )
     return ConversationHandler.END
 

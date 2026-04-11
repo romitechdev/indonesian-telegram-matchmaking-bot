@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LoveMatchID Admin Dashboard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f172a;
+      --panel: #111827;
+      --border: #243244;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --chip: #1f2937;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    .sub { color: var(--muted); margin: 0; }
+
+    .logout-form {
+      margin: 0;
+    }
+
+    .logout-btn {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      background: #0b1220;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .logout-btn:hover {
+      filter: brightness(1.08);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .card {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .card .label { color: var(--muted); font-size: 13px; }
+    .card .value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+
+    .section {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+    .section h2 { margin: 0 0 12px; font-size: 18px; }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .chip {
+      background: var(--chip);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      overflow-x: auto;
+      display: block;
+    }
+    thead th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      padding: 8px 6px;
+      white-space: nowrap;
+    }
+    tbody td {
+      border-bottom: 1px solid rgba(36, 50, 68, 0.6);
+      padding: 8px 6px;
+      white-space: nowrap;
+    }
+
+    .status-ok { color: var(--good); }
+    .status-warn { color: var(--warn); }
+    .status-bad { color: var(--bad); }
+
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .notice {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+      font-size: 13px;
+    }
+    .notice-ok {
+      border-color: rgba(34, 197, 94, 0.5);
+      color: #bbf7d0;
+    }
+    .notice-warn {
+      border-color: rgba(245, 158, 11, 0.5);
+      color: #fde68a;
+    }
+    .notice-error {
+      border-color: rgba(239, 68, 68, 0.5);
+      color: #fecaca;
+    }
+
+    .bulk-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .bulk-toolbar input,
+    .bulk-toolbar select,
+    .bulk-toolbar button {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #0b1220;
+      color: var(--text);
+      padding: 7px 10px;
+      font-size: 13px;
+    }
+    .bulk-toolbar button {
+      cursor: pointer;
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      color: #fff;
+    }
+    .bulk-toolbar button:hover {
+      filter: brightness(1.08);
+    }
+
+    a {
+      color: #93c5fd;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .btn-link {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 8px;
+      display: inline-block;
+      white-space: nowrap;
+    }
+
+    .inline-form {
+      display: inline-flex;
+      gap: 6px;
+      margin: 0;
+    }
+
+    .mini-btn {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 8px;
+      background: #0b1220;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .mini-btn.ok {
+      border-color: rgba(34, 197, 94, 0.5);
+      color: #bbf7d0;
+    }
+
+    .mini-btn.warn {
+      border-color: rgba(245, 158, 11, 0.5);
+      color: #fde68a;
+    }
+
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .pagination .page-info {
+      color: var(--muted);
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1>LoveMatchID • Admin Dashboard</h1>
+        <div class="sub">Snapshot data terbaru • {{ summary.generated_at }} • Login: {{ dashboard_username }}</div>
+      </div>
+      <form class="logout-form" method="post" action="/logout">
+        <button class="logout-btn" type="submit">Logout</button>
+      </form>
+    </div>
+
+    {% if message_text %}
+      <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
+    {% endif %}
+
+    <div class="cards">
+      <div class="card"><div class="label">Total Users</div><div class="value">{{ summary.total_users }}</div></div>
+      <div class="card"><div class="label">Users Aktif</div><div class="value status-ok">{{ summary.active_users }}</div></div>
+      <div class="card"><div class="label">Users Nonaktif</div><div class="value">{{ summary.inactive_users }}</div></div>
+      <div class="card"><div class="label">Sedang Diban</div><div class="value status-warn">{{ summary.banned_users }}</div></div>
+      <div class="card"><div class="label">Total Reports</div><div class="value">{{ summary.total_reports }}</div></div>
+      <div class="card"><div class="label">Open Reports</div><div class="value status-bad">{{ summary.open_reports }}</div></div>
+      <div class="card"><div class="label">Reports Disetujui</div><div class="value status-ok">{{ summary.approved_reports }}</div></div>
+      <div class="card"><div class="label">Reports Ditolak</div><div class="value status-warn">{{ summary.rejected_reports }}</div></div>
+    </div>
+
+    <div class="section">
+      <h2>Distribusi Gender</h2>
+      <div class="chips">
+        {% for item in summary.gender_stats %}
+          <div class="chip">{{ item.gender }}: {{ item.count }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>20 User Terbaru</h2>
+      <form method="post" action="/users/bulk-action" id="bulk-users-form">
+        <input type="hidden" name="page" value="{{ user_page.page }}">
+
+        <div class="bulk-toolbar">
+          <select name="action" required>
+            <option value="ban">Ban massal</option>
+            <option value="unban">Unban massal</option>
+            <option value="delete">Hapus massal</option>
+          </select>
+          <input type="number" name="ban_hours" min="1" max="720" value="24" placeholder="Durasi ban (jam)">
+          <input type="text" name="reason" maxlength="120" value="Moderasi via dashboard web" placeholder="Alasan ban">
+          <button type="submit">Terapkan ke User Terpilih</button>
+        </div>
+
+        <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="select-all-users" title="Pilih semua"></th>
+            <th>Nama</th>
+            <th>Umur</th>
+            <th>Gender</th>
+            <th>Telegram ID</th>
+            <th>Username (opsional)</th>
+            <th>Aktif</th>
+            <th>Ban</th>
+            <th>Report OK</th>
+            <th>Report Open</th>
+            <th>Limit Hari Ini</th>
+            <th>Koordinat</th>
+            <th>Maps</th>
+            <th>Reset</th>
+            <th>Detail</th>
+            <th>Dibuat</th>
+            <th>Mongo ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+            <tr>
+              <td><input type="checkbox" class="user-checkbox" name="selected_user_ids" value="{{ user.id }}"></td>
+              <td>{{ user.name }}</td>
+              <td>{{ user.age }}</td>
+              <td>{{ user.gender }}</td>
+              <td>{{ user.telegram_id }}</td>
+              <td>{{ user.username }}</td>
+              <td>{{ user.active }}</td>
+              <td>{% if user.is_banned %}<span class="status-warn">Ya (sampai {{ user.ban_until }})</span>{% else %}Tidak{% endif %}</td>
+              <td>{{ user.approved_reports_count }}</td>
+              <td>{{ user.open_reports_count }}</td>
+              <td>{{ user.daily_views_used }}/{{ user.daily_views_used + user.daily_views_remaining }}</td>
+              <td>{% if user.latitude is not none and user.longitude is not none %}{{ user.latitude }}, {{ user.longitude }}{% else %}-{% endif %}</td>
+              <td>{% if user.maps_url %}<a class="btn-link" href="{{ user.maps_url }}" target="_blank" rel="noopener noreferrer">Buka Maps</a>{% else %}-{% endif %}</td>
+              <td>
+                <button
+                  class="mini-btn"
+                  type="submit"
+                  formaction="/users/{{ user.id }}/reset-daily-limit"
+                  formmethod="post"
+                  formnovalidate
+                  name="next"
+                  value="home"
+                >
+                  Reset Limit
+                </button>
+              </td>
+              <td><a class="btn-link" href="/users/{{ user.id }}">Lihat Detail</a></td>
+              <td>{{ user.created_at }}</td>
+              <td>{{ user.id }}</td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="17">Belum ada user untuk halaman ini.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        </table>
+      </form>
+      <div class="pagination">
+        {% if user_page.has_prev %}
+          <a class="btn-link" href="/?page={{ user_page.prev_page }}">⬅ Prev</a>
+        {% endif %}
+        <div class="page-info">
+          Halaman {{ user_page.page }} / {{ user_page.total_pages }} • {{ user_page.total_items }} user
+        </div>
+        {% if user_page.has_next %}
+          <a class="btn-link" href="/?page={{ user_page.next_page }}">Next ➡</a>
+        {% endif %}
+      </div>
+      <div class="hint">Aksi ban/unban/hapus berjalan untuk banyak user sekaligus dari baris yang dicentang. Tombol Reset Limit menghapus riwayat view hari ini untuk user tersebut.</div>
+    </div>
+
+    <div class="section">
+      <h2>20 Report Terbaru</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Alasan</th>
+            <th>Pelapor</th>
+            <th>Dilaporkan</th>
+            <th>Akumulasi OK</th>
+            <th>Dibuat</th>
+            <th>Direview</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for report in reports %}
+            <tr>
+              <td>{{ report.id }}</td>
+              <td>
+                {% if report.status == 'open' %}
+                  <span class="status-bad">open</span>
+                {% elif report.status == 'approved' %}
+                  <span class="status-ok">approved</span>
+                {% else %}
+                  <span class="status-warn">rejected</span>
+                {% endif %}
+              </td>
+              <td>{{ report.reason }}</td>
+              <td>{{ report.reporter_name }} ({{ report.reporter_username }})</td>
+              <td>{{ report.reported_name }} ({{ report.reported_username }})</td>
+              <td>{{ report.approved_reports_count }}/{{ summary.auto_ban_threshold }}</td>
+              <td>{{ report.created_at }}</td>
+              <td>{{ report.reviewed_at }}</td>
+              <td>
+                <form class="inline-form" method="post" action="/reports/{{ report.id }}/review">
+                  <input type="hidden" name="page" value="{{ user_page.page }}">
+                  <input type="hidden" name="action" value="approve">
+                  <button class="mini-btn ok" type="submit">Setujui</button>
+                </form>
+                <form class="inline-form" method="post" action="/reports/{{ report.id }}/review">
+                  <input type="hidden" name="page" value="{{ user_page.page }}">
+                  <input type="hidden" name="action" value="reject">
+                  <button class="mini-btn warn" type="submit">Tolak</button>
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="9">Tidak ada report aktif yang perlu ditampilkan.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="hint">Report yang disetujui ikut dihitung ke threshold auto-ban. Saat mencapai {{ summary.auto_ban_threshold }} report disetujui, user otomatis diban.</div>
+    </div>
+  </div>
+
+  <script>
+    const selectAllUsers = document.getElementById("select-all-users");
+    const userCheckboxes = document.querySelectorAll(".user-checkbox");
+    const bulkForm = document.getElementById("bulk-users-form");
+
+    if (selectAllUsers) {
+      selectAllUsers.addEventListener("change", function () {
+        userCheckboxes.forEach((checkbox) => {
+          checkbox.checked = selectAllUsers.checked;
+        });
+      });
+    }
+
+    if (bulkForm) {
+      bulkForm.addEventListener("submit", function (event) {
+        const checked = Array.from(userCheckboxes).filter((item) => item.checked).length;
+        if (checked === 0) {
+          event.preventDefault();
+          alert("Pilih minimal satu user dulu.");
+          return;
+        }
+
+        const actionSelect = bulkForm.querySelector('select[name="action"]');
+        if (actionSelect && actionSelect.value === "delete") {
+          const ok = confirm(`Yakin hapus ${checked} user sekaligus?`);
+          if (!ok) {
+            event.preventDefault();
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

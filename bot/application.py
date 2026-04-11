@@ -5,14 +5,19 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+from telegram.request import HTTPXRequest
 
 from .config import (
     ADMIN_ACTION,
+    ADMIN_BROADCAST,
     ADMIN_DELETE_CONFIRM,
     ADMIN_RESOLVE_REPORT,
     ADMIN_TEMP_BAN,
     ADMIN_VIEW_USER,
     AGE,
+    QUIZ_COMM_STYLE,
+    QUIZ_RELATIONSHIP_GOAL,
+    QUIZ_VALUE,
     DESCRIPTION,
     EDIT_AGE,
     EDIT_CHOICE,
@@ -26,7 +31,12 @@ from .config import (
     NAME,
     PHOTO,
     REPORT_REASON_PATTERN,
+    TELEGRAM_CONNECT_TIMEOUT,
+    TELEGRAM_GET_UPDATES_READ_TIMEOUT,
+    TELEGRAM_POOL_TIMEOUT,
+    TELEGRAM_READ_TIMEOUT,
     TELEGRAM_TOKEN,
+    TELEGRAM_WRITE_TIMEOUT,
 )
 from .handlers import admin as admin_handlers
 from .handlers import core as core_handlers
@@ -40,10 +50,12 @@ def build_admin_action_handlers():
         MessageHandler(filters.Regex("^👥 List Users$"), admin_handlers.list_users),
         MessageHandler(filters.Regex("^📊 Stats$"), admin_handlers.show_stats),
         MessageHandler(
-            filters.Regex("^✅ Resolve Report$"), admin_handlers.resolve_report_prompt
+            filters.Regex("^(🧾 Review Report|✅ Resolve Report)$"),
+            admin_handlers.resolve_report_prompt,
         ),
         MessageHandler(filters.Regex("^⛔ Ban Sementara$"), admin_handlers.temp_ban_prompt),
         MessageHandler(filters.Regex("^🚨 Reports$"), admin_handlers.list_reports),
+        MessageHandler(filters.Regex("^📣 Broadcast$"), admin_handlers.broadcast_prompt),
         MessageHandler(filters.Regex("^🔍 Find User$"), admin_handlers.find_user),
         MessageHandler(filters.Regex("^❌ Delete User$"), admin_handlers.delete_user_prompt),
         MessageHandler(filters.Regex("^🏠 Main Menu$"), admin_handlers.admin_main_menu),
@@ -65,11 +77,33 @@ def build_admin_states():
         ADMIN_TEMP_BAN: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, admin_handlers.temp_ban_confirm)
         ],
+        ADMIN_BROADCAST: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, admin_handlers.broadcast_send)
+        ],
     }
 
 
 def create_application() -> Application:
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
+    bot_request = HTTPXRequest(
+        connect_timeout=TELEGRAM_CONNECT_TIMEOUT,
+        read_timeout=TELEGRAM_READ_TIMEOUT,
+        write_timeout=TELEGRAM_WRITE_TIMEOUT,
+        pool_timeout=TELEGRAM_POOL_TIMEOUT,
+    )
+    get_updates_request = HTTPXRequest(
+        connect_timeout=TELEGRAM_CONNECT_TIMEOUT,
+        read_timeout=TELEGRAM_GET_UPDATES_READ_TIMEOUT,
+        write_timeout=TELEGRAM_WRITE_TIMEOUT,
+        pool_timeout=TELEGRAM_POOL_TIMEOUT,
+    )
+
+    application = (
+        Application.builder()
+        .token(TELEGRAM_TOKEN)
+        .request(bot_request)
+        .get_updates_request(get_updates_request)
+        .build()
+    )
 
     user_states = {
         NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_name)],
@@ -77,6 +111,15 @@ def create_application() -> Application:
         GENDER: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_gender)],
         DESCRIPTION: [
             MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_description)
+        ],
+        QUIZ_VALUE: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_quiz_value)
+        ],
+        QUIZ_COMM_STYLE: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_quiz_communication_style)
+        ],
+        QUIZ_RELATIONSHIP_GOAL: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_quiz_relationship_goal)
         ],
         LOCATION: [MessageHandler(filters.LOCATION, user_handlers.get_location)],
         PHOTO: [MessageHandler(filters.PHOTO, user_handlers.get_photo)],
@@ -130,6 +173,9 @@ def create_application() -> Application:
         MessageHandler(filters.Regex("^🔍 Cari Teman$"), matching_handlers.find_nearby_friends)
     )
     application.add_handler(
+        MessageHandler(filters.Regex("^💖 Like$"), matching_handlers.disabled_like_action)
+    )
+    application.add_handler(
         MessageHandler(filters.Regex("^🚫 Block$"), matching_handlers.block_current_match)
     )
     application.add_handler(
@@ -137,6 +183,9 @@ def create_application() -> Application:
     )
     application.add_handler(
         MessageHandler(filters.Regex(REPORT_REASON_PATTERN), matching_handlers.submit_report_reason)
+    )
+    application.add_handler(
+        MessageHandler(filters.Regex("^💬 Sudah Chat$"), matching_handlers.disabled_chat_action)
     )
     application.add_handler(
         MessageHandler(filters.Regex("^👀 Profile Saya$"), profile_handlers.view_my_profile)
@@ -152,4 +201,4 @@ def create_application() -> Application:
 def main() -> None:
     application = create_application()
     print("Bot starting...")
-    application.run_polling()
+    application.run_polling(bootstrap_retries=10)

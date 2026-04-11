@@ -10,3 +10,6 @@ users_collection = db.users
 seen_profiles_collection = db.seen_profiles
 blocked_profiles_collection = db.blocked_profiles
 reports_collection = db.reports
+likes_collection = db.likes
+matches_collection = db.matches
+chat_events_collection = db.chat_events

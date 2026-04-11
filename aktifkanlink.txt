@@ -1,0 +1,1 @@
+sudo journalctl -u lovematchid-cloudflared.service -n 500 --no-pager | grep -Eo 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
