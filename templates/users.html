@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Daftar User • LoveMatchID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f4f4f0;
+      --panel: #ffffff;
+      --border: #111111;
+      --text: #111111;
+      --muted: #555555;
+      --good-bg: #4ade80;
+      --warn-bg: #fde047;
+      --bad-bg: #ef4444;
+      --chip: #e0e0e0;
+      --primary: #3b82f6;
+      --s1: 2px 2px 0 #111;
+      --s2: 4px 4px 0 #111;
+      --s3: 6px 6px 0 #111;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      background: var(--bg);
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+      background-size: 22px 22px;
+      color: var(--text);
+      min-height: 100vh;
+    }
+    h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; }
+
+    /* ── Layout ─────────────────────── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ────────────────────── */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--panel);
+      border-right: 3px solid var(--border);
+      padding: 24px 16px;
+      display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh;
+      overflow-y: auto;
+    }
+    .sidebar .logo {
+      font-size: 18px; font-weight: 700; text-transform: uppercase;
+      background: var(--warn-bg); border: 3px solid var(--border);
+      padding: 6px 12px; box-shadow: var(--s1); margin-bottom: 28px;
+      display: block;
+    }
+    .sidebar nav { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .sidebar nav a {
+      display: block; padding: 10px 12px;
+      border: 2px solid var(--border); background: var(--bg);
+      color: var(--text); text-decoration: none;
+      font-weight: 700; font-size: 13px; text-transform: uppercase;
+      box-shadow: var(--s1); transition: all 0.1s;
+    }
+    .sidebar nav a:hover { background: var(--primary); color: #fff; transform: translate(-2px,-2px); box-shadow: var(--s2); }
+    .sidebar nav a.active { background: var(--border); color: #fff; }
+    .sidebar .logout-wrap { margin-top: auto; padding-top: 20px; }
+    .sidebar .logout-btn {
+      width: 100%; padding: 10px; font-family: inherit;
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      border: 3px solid var(--border); background: var(--bad-bg);
+      color: #fff; cursor: pointer; box-shadow: var(--s1); transition: all 0.1s;
+    }
+    .sidebar .logout-btn:hover { transform: translate(-2px,-2px); box-shadow: var(--s2); }
+
+    /* ── Main ───────────────────────── */
+    .main { flex: 1; padding: 28px; min-width: 0; }
+
+    /* ── Page header ────────────────── */
+    .page-header {
+      background: var(--panel); border: 3px solid var(--border);
+      box-shadow: var(--s2); padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .page-header h1 {
+      font-size: 26px; text-transform: uppercase;
+      background: var(--warn-bg); display: inline-block;
+      padding: 2px 10px; border: 2px solid var(--border); margin-bottom: 4px;
+    }
+    .page-header .sub { color: var(--muted); font-size: 13px; font-weight: 600; }
+
+    /* ── Notice ─────────────────────── */
+    .notice {
+      border: 3px solid var(--border); padding: 12px 16px;
+      margin-bottom: 20px; font-weight: 700; box-shadow: var(--s1);
+    }
+    .notice-ok { background: var(--good-bg); }
+    .notice-warn { background: var(--warn-bg); }
+    .notice-error, .notice-bad { background: var(--bad-bg); color: #fff; }
+
+    /* ── Table card ─────────────────── */
+    .table-card {
+      background: var(--panel); border: 3px solid var(--border);
+      box-shadow: var(--s2); overflow: hidden;
+    }
+    .table-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 3px solid var(--border);
+      background: var(--border);
+    }
+    .table-card-header h2 { font-size: 18px; color: #fff; text-transform: uppercase; }
+    .table-card-header .count-badge {
+      background: var(--warn-bg); color: var(--border);
+      border: 2px solid #fff; padding: 2px 10px;
+      font-size: 13px; font-weight: 700;
+    }
+
+    /* ── Table ──────────────────────── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead th {
+      background: #1e293b; color: #e2e8f0;
+      font-weight: 700; text-transform: uppercase;
+      font-size: 12px; letter-spacing: 0.05em;
+      padding: 12px 16px; text-align: left;
+      white-space: nowrap; border-bottom: 3px solid var(--border);
+    }
+    tbody tr { border-bottom: 2px solid #e2e8f0; transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fef9c3; }
+    tbody td { padding: 12px 16px; vertical-align: middle; white-space: nowrap; font-weight: 600; }
+
+    /* ── Status badges ──────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border: 2px solid var(--border);
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      box-shadow: 1px 1px 0 var(--border);
+    }
+    .badge-ok { background: var(--good-bg); }
+    .badge-warn { background: var(--warn-bg); }
+    .badge-bad { background: var(--bad-bg); color: #fff; }
+    .badge-idle { background: var(--chip); }
+    .badge::before { content: '●'; font-size: 8px; }
+
+    /* ── Action buttons ─────────────── */
+    .action-group { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
+    .btn {
+      display: inline-block; padding: 5px 10px;
+      border: 2px solid var(--border); font-family: inherit;
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      cursor: pointer; text-decoration: none; color: var(--text);
+      background: var(--panel); box-shadow: var(--s1); transition: all 0.1s;
+      white-space: nowrap;
+    }
+    .btn:hover { transform: translate(-1px,-1px); box-shadow: var(--s2); }
+    .btn:active { transform: translate(1px,1px); box-shadow: none; }
+    .btn-detail { background: var(--primary); color: #fff; border-color: var(--border); }
+    .btn-ban { background: var(--warn-bg); }
+    .btn-unban { background: var(--good-bg); }
+    .btn-del { background: var(--bad-bg); color: #fff; }
+
+    /* ── Pagination ─────────────────── */
+    .pagination {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px; border-top: 3px solid var(--border);
+      background: #f8fafc; flex-wrap: wrap;
+    }
+    .pagination .page-info { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; flex: 1; }
+    .btn-page {
+      padding: 6px 14px; border: 2px solid var(--border);
+      background: var(--panel); font-family: inherit;
+      font-size: 13px; font-weight: 700; cursor: pointer;
+      text-decoration: none; color: var(--text);
+      box-shadow: var(--s1); transition: all 0.1s;
+    }
+    .btn-page:hover { background: var(--primary); color: #fff; transform: translate(-1px,-1px); box-shadow: var(--s2); }
+
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 3px solid var(--border); }
+      .main { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <span class="logo">LoveMatchID</span>
+      <nav>
+        <a href="/">Dashboard</a>
+        <a href="/users" class="active">Daftar User</a>
+        <a href="/reports">Daftar Report</a>
+        <a href="/matches">Riwayat Match</a>
+        <a href="/chats">Active Chats</a>
+      </nav>
+      <div class="logout-wrap">
+        <form method="post" action="/logout">
+          <button type="submit" class="logout-btn">Logout</button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="page-header">
+        <h1>Daftar User</h1>
+        <div class="sub">{{ user_page.total_items }} user terdaftar • Login: {{ dashboard_username }}</div>
+      </div>
+
+      {% if message_text %}
+        <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
+      {% endif %}
+
+      <div class="table-card">
+        <div class="table-card-header">
+          <h2>Semua User</h2>
+          <span class="count-badge">{{ user_page.total_items }} User</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Nama</th>
+                <th>Umur</th>
+                <th>Gender</th>
+                <th>Telegram ID</th>
+                <th>Username</th>
+                <th>Status</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for user in users %}
+                <tr>
+                  <td style="color:var(--muted); font-size:12px;">{{ loop.index + (user_page.page - 1) * 20 }}</td>
+                  <td style="font-weight:700;">{{ user.name }}</td>
+                  <td>{{ user.age }}</td>
+                  <td>{{ user.gender }}</td>
+                  <td style="font-family:monospace; font-size:13px;">{{ user.telegram_id }}</td>
+                  <td style="color:var(--muted);">{{ user.username or '-' }}</td>
+                  <td>
+                    {% if user.is_banned %}
+                      <span class="badge badge-bad">Banned</span>
+                    {% elif user.active %}
+                      <span class="badge badge-ok">Aktif</span>
+                    {% else %}
+                      <span class="badge badge-idle">Nonaktif</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <form class="action-group" method="post" action="/users/bulk-action">
+                      <input type="hidden" name="selected_user_ids" value="{{ user.id }}">
+                      <input type="hidden" name="page" value="{{ user_page.page }}">
+                      <input type="hidden" name="next" value="users">
+                      <a class="btn btn-detail" href="/users/{{ user.id }}">Detail</a>
+                      {% if user.is_banned %}
+                        <button class="btn btn-unban" type="submit" name="action" value="unban">Unban</button>
+                      {% else %}
+                        <button class="btn btn-ban" type="submit" name="action" value="ban" onclick="return confirm('Ban user {{ user.name }}?')">Ban</button>
+                      {% endif %}
+                      <button class="btn btn-del" type="submit" name="action" value="delete" onclick="return confirm('Hapus user {{ user.name }}? Tindakan ini tidak bisa dibatalkan!')">Hapus</button>
+                    </form>
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td colspan="8" style="text-align:center; padding:40px; color:var(--muted);">Belum ada user terdaftar.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div class="pagination">
+          <div class="page-info">
+            Halaman {{ user_page.page }} / {{ user_page.total_pages }} &nbsp;•&nbsp; {{ user_page.total_items }} user total
+          </div>
+          {% if user_page.has_prev %}
+            <a class="btn-page" href="/users?page={{ user_page.prev_page }}">← Prev</a>
+          {% endif %}
+          {% if user_page.has_next %}
+            <a class="btn-page" href="/users?page={{ user_page.next_page }}">Next →</a>
+          {% endif %}
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

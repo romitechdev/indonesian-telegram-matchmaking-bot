@@ -55,6 +55,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             "Balik lagi nih~ Mau ngapain hari ini? 😊",
             reply_markup=main_menu_keyboard(),
         )
+
+        pending_notifications = user_service.consume_pending_notifications(user.id)
+        for notification in pending_notifications:
+            notice_text = notification.get("text")
+            if notice_text:
+                await update.message.reply_text(notice_text)
+
         return ConversationHandler.END
 
     await update.message.reply_text(

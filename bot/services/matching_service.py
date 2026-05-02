@@ -1,4 +1,5 @@
 from bson.objectid import ObjectId
+from datetime import timedelta
 
 from ..config import DAILY_PROFILE_VIEW_LIMIT
 from ..repositories.blocked_profiles import blocked_profile_repository
@@ -16,6 +17,7 @@ from ..utils import (
     not_banned_query,
     now_utc,
 )
+from ..config import AUTO_REPORT_BAN_THRESHOLD, AUTO_REPORT_BAN_DAYS
 
 
 class MatchingService:
@@ -161,9 +163,15 @@ class MatchingService:
         )
 
     def like_profile(self, liker_profile: dict, liked_profile: dict):
+        from ..config import logger
+        
         liker_telegram_id = liker_profile.get("telegram_id")
         liked_telegram_id = liked_profile.get("telegram_id")
+        
+        logger.info(f"like_profile called: liker={liker_telegram_id}, liked={liked_telegram_id}")
+        
         if liker_telegram_id is None or liked_telegram_id is None:
+            logger.warning(f"Invalid targets - liker: {liker_telegram_id}, liked: {liked_telegram_id}")
             return {
                 "status": "invalid_target",
                 "is_match": False,
@@ -183,7 +191,10 @@ class MatchingService:
             liker_telegram_id=liked_telegram_id,
             liked_telegram_id=liker_telegram_id,
         )
+        logger.info(f"Mutual like check: is_mutual={is_mutual}")
+        
         if not is_mutual:
+            logger.info(f"One-sided like - returning 'liked' status")
             return {
                 "status": "liked",
                 "is_match": False,
@@ -197,6 +208,7 @@ class MatchingService:
             second_name=liked_profile.get("name", "Tanpa Nama"),
             created_at=current_time,
         )
+        logger.info(f"Mutual match created - returning 'matched' status")
         return {
             "status": "matched",
             "is_match": True,
@@ -281,6 +293,28 @@ class MatchingService:
             reason=f"Report: {reason}",
             created_at=now_utc(),
         )
+        # Auto-block when number of reports for this reported user reaches threshold
+        try:
+            reported_id = pending_report.get("reported_telegram_id")
+            if reported_id is not None:
+                total_reports = self.reports_repo.count_by_reported_telegram_id(reported_id)
+                if total_reports >= AUTO_REPORT_BAN_THRESHOLD:
+                    review_time = now_utc()
+                    # apply temporary ban (auto ban)
+                    self.users_repo.update_by_telegram_id(
+                        reported_id,
+                        {
+                            "ban_until": review_time + timedelta(days=AUTO_REPORT_BAN_DAYS),
+                            "ban_reason": f"Auto-ban: {total_reports} reports",
+                            "banned_at": review_time,
+                            "banned_by": "auto_report_threshold",
+                            "auto_report_ban": True,
+                            "auto_report_ban_count": total_reports,
+                            "last_updated": review_time,
+                        },
+                    )
+        except Exception:
+            pass
 
 
 matching_service = MatchingService(

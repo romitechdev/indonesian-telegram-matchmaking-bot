@@ -3,187 +3,296 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Detail User • {{ user.name }}</title>
+  <title>Detail User • {{ user.name }} • LoveMatchID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      color-scheme: dark;
-      --bg: #0f172a;
-      --panel: #111827;
-      --border: #243244;
-      --text: #e5e7eb;
-      --muted: #94a3b8;
-      --good: #22c55e;
-      --warn: #f59e0b;
-      --bad: #ef4444;
+      --bg: #f4f4f0;
+      --panel: #ffffff;
+      --border: #111111;
+      --text: #111111;
+      --muted: #555555;
+      --good-bg: #4ade80;
+      --warn-bg: #fde047;
+      --bad-bg: #ef4444;
+      --chip: #e0e0e0;
+      --primary: #3b82f6;
+      --s1: 2px 2px 0 #111;
+      --s2: 4px 4px 0 #111;
+      --s3: 6px 6px 0 #111;
     }
-
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
       background: var(--bg);
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+      background-size: 22px 22px;
       color: var(--text);
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      min-height: 100vh;
     }
+    h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; }
 
-    .container {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 20px;
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ─────────── */
+    .sidebar {
+      width: 240px; flex-shrink: 0;
+      background: var(--panel); border-right: 3px solid var(--border);
+      padding: 24px 16px; display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
     }
-
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 16px;
+    .sidebar .logo {
+      font-size: 18px; font-weight: 700; text-transform: uppercase;
+      background: var(--warn-bg); border: 3px solid var(--border);
+      padding: 6px 12px; box-shadow: var(--s1); margin-bottom: 28px; display: block;
     }
-
-    h1 {
-      margin: 0;
-      font-size: 24px;
+    .sidebar nav { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .sidebar nav a {
+      display: block; padding: 10px 12px; border: 2px solid var(--border);
+      background: var(--bg); color: var(--text); text-decoration: none;
+      font-weight: 700; font-size: 13px; text-transform: uppercase;
+      box-shadow: var(--s1); transition: all 0.1s;
     }
-
-    .panel {
-      border: 1px solid var(--border);
-      background: var(--panel);
-      border-radius: 12px;
-      padding: 16px;
+    .sidebar nav a:hover { background: var(--primary); color: #fff; transform: translate(-2px,-2px); box-shadow: var(--s2); }
+    .sidebar nav a.active { background: var(--border); color: #fff; }
+    .sidebar .logout-wrap { margin-top: auto; padding-top: 20px; }
+    .sidebar .logout-btn {
+      width: 100%; padding: 10px; font-family: inherit;
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      border: 3px solid var(--border); background: var(--bad-bg);
+      color: #fff; cursor: pointer; box-shadow: var(--s1); transition: all 0.1s;
     }
+    .sidebar .logout-btn:hover { transform: translate(-2px,-2px); box-shadow: var(--s2); }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-      gap: 12px;
-    }
+    /* ── Main ─────────────── */
+    .main { flex: 1; padding: 28px; min-width: 0; }
 
-    .item {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px;
-      background: rgba(255, 255, 255, 0.02);
-    }
-
-    .label {
-      color: var(--muted);
-      font-size: 12px;
-      margin-bottom: 4px;
-    }
-
-    .value {
-      font-size: 14px;
-      word-break: break-word;
-    }
-
-    .description {
-      margin-top: 14px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      white-space: pre-wrap;
-      line-height: 1.45;
-    }
-
-    .status-ok { color: var(--good); }
-    .status-warn { color: var(--warn); }
-    .status-bad { color: var(--bad); }
-
+    /* ── Notice ──────────── */
     .notice {
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      margin-bottom: 14px;
-      font-size: 13px;
+      border: 3px solid var(--border); padding: 12px 16px;
+      margin-bottom: 20px; font-weight: 700; box-shadow: var(--s1);
+    }
+    .notice-ok { background: var(--good-bg); }
+    .notice-warn { background: var(--warn-bg); }
+    .notice-error, .notice-bad { background: var(--bad-bg); color: #fff; }
+
+    /* ── User hero header ─── */
+    .user-hero {
+      background: var(--panel); border: 3px solid var(--border);
+      box-shadow: var(--s3); padding: 28px 32px;
+      margin-bottom: 24px; display: flex;
+      align-items: flex-start; justify-content: space-between;
+      gap: 24px; flex-wrap: wrap;
+    }
+    .user-hero-left { flex: 1; min-width: 200px; }
+    .user-hero-name {
+      font-size: 32px; font-weight: 700; text-transform: uppercase;
+      background: var(--warn-bg); display: inline-block;
+      padding: 4px 14px; border: 3px solid var(--border);
+      box-shadow: var(--s2); margin-bottom: 8px;
+    }
+    .user-hero-meta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .tag {
+      padding: 4px 12px; border: 2px solid var(--border);
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      box-shadow: var(--s1); background: var(--chip);
+    }
+    .tag-ok { background: var(--good-bg); }
+    .tag-warn { background: var(--warn-bg); }
+    .tag-bad { background: var(--bad-bg); color: #fff; }
+    .tag-blue { background: var(--primary); color: #fff; }
+
+    /* ── Action buttons ──── */
+    .user-hero-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+    .btn {
+      display: inline-block; padding: 8px 16px;
+      border: 3px solid var(--border); font-family: inherit;
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      cursor: pointer; text-decoration: none; color: var(--text);
+      background: var(--panel); box-shadow: var(--s1); transition: all 0.1s;
+    }
+    .btn:hover { transform: translate(-2px,-2px); box-shadow: var(--s2); }
+    .btn:active { transform: translate(2px,2px); box-shadow: none; }
+    .btn-ban { background: var(--warn-bg); }
+    .btn-unban { background: var(--good-bg); }
+    .btn-del { background: var(--bad-bg); color: #fff; }
+    .btn-reset { background: var(--primary); color: #fff; }
+    .btn-back { background: var(--panel); }
+
+    /* ── Info sections ──── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 3px;
+      border: 3px solid var(--border);
+      box-shadow: var(--s2);
+      background: var(--border);
+      margin-bottom: 24px;
+    }
+    .info-card {
+      background: var(--panel);
+      padding: 18px 20px;
+    }
+    .info-card .lbl {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px;
+    }
+    .info-card .val {
+      font-size: 17px; font-weight: 700; color: var(--text); word-break: break-all;
+    }
+    .info-card .val.mono { font-family: monospace; font-size: 14px; }
+
+    /* ── Section header ─── */
+    .section-title {
+      font-size: 16px; font-weight: 700; text-transform: uppercase;
+      padding: 10px 16px; background: var(--border); color: #fff;
+      margin-bottom: 0; border: 3px solid var(--border);
+      border-bottom: none; display: block;
     }
 
-    .notice-ok {
-      border-color: rgba(34, 197, 94, 0.5);
-      color: #bbf7d0;
+    /* ── Bio box ─────────── */
+    .bio-box {
+      border: 3px solid var(--border); background: #fdf8e3;
+      box-shadow: var(--s2); margin-bottom: 24px;
+    }
+    .bio-content {
+      padding: 20px 24px; font-size: 15px; font-weight: 600;
+      white-space: pre-wrap; line-height: 1.7; color: var(--text);
     }
 
-    .notice-error {
-      border-color: rgba(239, 68, 68, 0.5);
-      color: #fecaca;
-    }
-
-    a {
-      color: #93c5fd;
-      text-decoration: none;
-    }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    .btn-link {
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 6px 10px;
-      display: inline-block;
-      white-space: nowrap;
-      background: transparent;
-      color: #93c5fd;
-    }
-
-    form {
-      margin: 0;
+    @media (max-width: 768px) {
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 3px solid var(--border); }
+      .main { padding: 16px; }
+      .user-hero { flex-direction: column; }
+      .info-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>Detail User: {{ user.name }}</h1>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <form method="post" action="/users/{{ user.id }}/reset-daily-limit">
-          <input type="hidden" name="next" value="detail">
-          <button class="btn-link" type="submit">Reset Limit Harian</button>
-        </form>
-        <a class="btn-link" href="/">⬅ Kembali ke Dashboard</a>
+  <div class="layout">
+    <aside class="sidebar">
+      <span class="logo">LoveMatchID</span>
+      <nav>
+        <a href="/">Dashboard</a>
+        <a href="/users" class="active">Daftar User</a>
+        <a href="/reports">Daftar Report</a>
+        <a href="/matches">Riwayat Match</a>
+        <a href="/chats">Active Chats</a>
+      </nav>
+      <div class="logout-wrap">
         <form method="post" action="/logout">
-          <button class="btn-link" type="submit">Logout</button>
+          <button type="submit" class="logout-btn">Logout</button>
         </form>
       </div>
-    </div>
+    </aside>
 
-    {% if message_text %}
-      <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
-    {% endif %}
+    <main class="main">
+      {% if message_text %}
+        <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
+      {% endif %}
 
-    <div class="panel">
-      <div class="grid">
-        <div class="item"><div class="label">Mongo ID</div><div class="value">{{ user.id }}</div></div>
-        <div class="item"><div class="label">Telegram ID</div><div class="value">{{ user.telegram_id }}</div></div>
-        <div class="item"><div class="label">Username (opsional)</div><div class="value">{{ user.username }}</div></div>
-        <div class="item"><div class="label">Nama</div><div class="value">{{ user.name }}</div></div>
-        <div class="item"><div class="label">Umur</div><div class="value">{{ user.age }}</div></div>
-        <div class="item"><div class="label">Gender</div><div class="value">{{ user.gender }}</div></div>
-        <div class="item"><div class="label">Age Group</div><div class="value">{{ user.age_group }}</div></div>
-        <div class="item"><div class="label">Nilai Relasi</div><div class="value">{{ user.compatibility_value }}</div></div>
-        <div class="item"><div class="label">Gaya Komunikasi</div><div class="value">{{ user.compatibility_communication_style }}</div></div>
-        <div class="item"><div class="label">Goal Relasi</div><div class="value">{{ user.compatibility_relationship_goal }}</div></div>
-        <div class="item"><div class="label">Status Aktif</div><div class="value">{% if user.is_active %}<span class="status-ok">Aktif</span>{% else %}<span class="status-bad">Nonaktif</span>{% endif %}</div></div>
-        <div class="item"><div class="label">Status Ban</div><div class="value">{% if user.is_banned %}<span class="status-warn">Sedang diban</span>{% else %}<span class="status-ok">Tidak diban</span>{% endif %}</div></div>
-        <div class="item"><div class="label">Ban Sampai</div><div class="value">{{ user.ban_until }}</div></div>
-        <div class="item"><div class="label">Alasan Ban</div><div class="value">{{ user.ban_reason }}</div></div>
-        <div class="item"><div class="label">Report Disetujui</div><div class="value">{{ user.approved_reports_count }}/{{ user.auto_ban_threshold }}</div></div>
-        <div class="item"><div class="label">Report Open</div><div class="value">{{ user.open_reports_count }}</div></div>
-        <div class="item"><div class="label">Report Ditolak</div><div class="value">{{ user.rejected_reports_count }}</div></div>
-        <div class="item"><div class="label">Limit Dipakai Hari Ini</div><div class="value">{{ user.daily_views_used }}</div></div>
-        <div class="item"><div class="label">Limit Harian</div><div class="value">{{ user.daily_view_limit }}</div></div>
-        <div class="item"><div class="label">Sisa Hari Ini</div><div class="value">{{ user.daily_views_remaining }}</div></div>
-        <div class="item"><div class="label">Koordinat</div><div class="value">{% if user.latitude is not none and user.longitude is not none %}{{ user.latitude }}, {{ user.longitude }}{% else %}-{% endif %}</div></div>
-        <div class="item"><div class="label">Google Maps</div><div class="value">{% if user.maps_url %}<a class="btn-link" href="{{ user.maps_url }}" target="_blank" rel="noopener noreferrer">Buka Lokasi</a>{% else %}-{% endif %}</div></div>
-        <div class="item"><div class="label">Dibuat</div><div class="value">{{ user.created_at }}</div></div>
-        <div class="item"><div class="label">Last Updated</div><div class="value">{{ user.last_updated }}</div></div>
-        <div class="item"><div class="label">Last Seen</div><div class="value">{{ user.last_seen }}</div></div>
+      <!-- ── User Hero Card ── -->
+      <div class="user-hero">
+        <div class="user-hero-left">
+          <div class="user-hero-name">{{ user.name }}</div>
+          <div class="user-hero-meta">
+            <span class="tag tag-blue">{{ user.gender }}</span>
+            <span class="tag">{{ user.age }} tahun</span>
+            {% if user.is_active %}
+              <span class="tag tag-ok">Aktif</span>
+            {% else %}
+              <span class="tag tag-bad">Nonaktif</span>
+            {% endif %}
+            {% if user.is_banned %}
+              <span class="tag tag-bad">⚠ BANNED</span>
+            {% endif %}
+          </div>
+          <div style="margin-top:12px; font-size:13px; color:var(--muted); font-weight:600;">
+            TG: {{ user.telegram_id }}{% if user.username %} &nbsp;|&nbsp; @{{ user.username }}{% endif %}
+          </div>
+        </div>
+        <div class="user-hero-actions">
+          <a class="btn btn-back" href="/users">← Kembali</a>
+          <form method="post" action="/users/bulk-action" style="display:contents;">
+            <input type="hidden" name="selected_user_ids" value="{{ user.id }}">
+            <input type="hidden" name="next" value="users">
+            {% if user.is_banned %}
+              <button class="btn btn-unban" type="submit" name="action" value="unban">Unban</button>
+            {% else %}
+              <button class="btn btn-ban" type="submit" name="action" value="ban" onclick="return confirm('Ban user ini 24 jam?')">Ban 24 Jam</button>
+            {% endif %}
+            <button class="btn btn-del" type="submit" name="action" value="delete" onclick="return confirm('Hapus user ini secara permanen?')">Hapus User</button>
+          </form>
+          <form method="post" action="/users/{{ user.id }}/reset-daily-limit" style="display:contents;">
+            <input type="hidden" name="next" value="detail">
+            <button class="btn btn-reset" type="submit">Reset Limit Harian</button>
+          </form>
+        </div>
       </div>
 
-      <div class="description">
-        <div class="label">Bio</div>
-        <div class="value">{{ user.description }}</div>
+      <!-- ── Info: Profil ── -->
+      <span class="section-title">Profil</span>
+      <div class="info-grid">
+        <div class="info-card"><div class="lbl">Nama</div><div class="val">{{ user.name }}</div></div>
+        <div class="info-card"><div class="lbl">Umur</div><div class="val">{{ user.age }} tahun ({{ user.age_group }})</div></div>
+        <div class="info-card"><div class="lbl">Gender</div><div class="val">{{ user.gender }}</div></div>
+        <div class="info-card"><div class="lbl">Telegram ID</div><div class="val mono">{{ user.telegram_id }}</div></div>
+        <div class="info-card"><div class="lbl">Username</div><div class="val">{{ user.username or '-' }}</div></div>
+        <div class="info-card"><div class="lbl">Mongo ID</div><div class="val mono" style="font-size:12px;">{{ user.id }}</div></div>
       </div>
-    </div>
+
+      <!-- ── Info: Kompatibilitas ── -->
+      <span class="section-title">Kompatibilitas</span>
+      <div class="info-grid" style="margin-bottom:24px;">
+        <div class="info-card"><div class="lbl">Nilai Relasi</div><div class="val">{{ user.compatibility_value or '-' }}</div></div>
+        <div class="info-card"><div class="lbl">Gaya Komunikasi</div><div class="val">{{ user.compatibility_communication_style or '-' }}</div></div>
+        <div class="info-card"><div class="lbl">Goal Relasi</div><div class="val">{{ user.compatibility_relationship_goal or '-' }}</div></div>
+      </div>
+
+      <!-- ── Info: Status & Moderasi ── -->
+      <span class="section-title">Status & Moderasi</span>
+      <div class="info-grid" style="margin-bottom:24px;">
+        <div class="info-card">
+          <div class="lbl">Status Akun</div>
+          <div class="val">{% if user.is_active %}<span style="color:green;">✓ Aktif</span>{% else %}<span style="color:red;">✗ Nonaktif</span>{% endif %}</div>
+        </div>
+        <div class="info-card">
+          <div class="lbl">Status Ban</div>
+          <div class="val">{% if user.is_banned %}<span style="color:red;">⚠ Diban</span>{% else %}<span style="color:green;">✓ Bebas</span>{% endif %}</div>
+        </div>
+        <div class="info-card"><div class="lbl">Diban Sampai</div><div class="val">{{ user.ban_until or '-' }}</div></div>
+        <div class="info-card"><div class="lbl">Alasan Ban</div><div class="val">{{ user.ban_reason or '-' }}</div></div>
+        <div class="info-card"><div class="lbl">Report Disetujui</div><div class="val">{{ user.approved_reports_count }} / {{ user.auto_ban_threshold }}</div></div>
+        <div class="info-card"><div class="lbl">Report Open</div><div class="val">{{ user.open_reports_count }}</div></div>
+        <div class="info-card"><div class="lbl">Report Ditolak</div><div class="val">{{ user.rejected_reports_count }}</div></div>
+      </div>
+
+      <!-- ── Info: Limit & Waktu ── -->
+      <span class="section-title">Limit & Aktivitas</span>
+      <div class="info-grid" style="margin-bottom:24px;">
+        <div class="info-card"><div class="lbl">Limit Harian</div><div class="val">{{ user.daily_view_limit }}</div></div>
+        <div class="info-card"><div class="lbl">Terpakai Hari Ini</div><div class="val">{{ user.daily_views_used }}</div></div>
+        <div class="info-card"><div class="lbl">Sisa Hari Ini</div><div class="val">{{ user.daily_views_remaining }}</div></div>
+        <div class="info-card"><div class="lbl">Koordinat</div><div class="val mono" style="font-size:13px;">{% if user.latitude is not none and user.longitude is not none %}{{ user.latitude }}, {{ user.longitude }}{% else %}-{% endif %}</div></div>
+        <div class="info-card">
+          <div class="lbl">Google Maps</div>
+          <div class="val">{% if user.maps_url %}<a href="{{ user.maps_url }}" target="_blank" rel="noopener" style="color:var(--primary); text-decoration:underline; font-weight:700;">Buka Lokasi ↗</a>{% else %}-{% endif %}</div>
+        </div>
+        <div class="info-card"><div class="lbl">Dibuat</div><div class="val" style="font-size:13px;">{{ user.created_at }}</div></div>
+        <div class="info-card"><div class="lbl">Terakhir Diperbarui</div><div class="val" style="font-size:13px;">{{ user.last_updated }}</div></div>
+        <div class="info-card"><div class="lbl">Terakhir Aktif</div><div class="val" style="font-size:13px;">{{ user.last_seen }}</div></div>
+      </div>
+
+      <!-- ── Bio ── -->
+      {% if user.description %}
+        <span class="section-title">Bio</span>
+        <div class="bio-box">
+          <div class="bio-content">{{ user.description }}</div>
+        </div>
+      {% endif %}
+    </main>
   </div>
 </body>
 </html>

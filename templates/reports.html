@@ -460,42 +460,101 @@
       <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
     {% endif %}
 
-    <div class="cards">
-      <div class="card"><div class="label">Total Users</div><div class="value">{{ summary.total_users }}</div></div>
-      <div class="card"><div class="label">Users Aktif</div><div class="value status-ok">{{ summary.active_users }}</div></div>
-      <div class="card"><div class="label">Users Nonaktif</div><div class="value">{{ summary.inactive_users }}</div></div>
-      <div class="card"><div class="label">Sedang Diban</div><div class="value status-warn">{{ summary.banned_users }}</div></div>
-      <div class="card"><div class="label">Total Reports</div><div class="value">{{ summary.total_reports }}</div></div>
-      <div class="card"><div class="label">Open Reports</div><div class="value status-bad">{{ summary.open_reports }}</div></div>
-      <div class="card"><div class="label">Reports Disetujui</div><div class="value status-ok">{{ summary.approved_reports }}</div></div>
-      <div class="card"><div class="label">Reports Ditolak</div><div class="value status-warn">{{ summary.rejected_reports }}</div></div>
-    </div>
-
     <div class="section">
-      <h2>Distribusi Gender</h2>
-      <div class="chips">
-        {% for item in summary.gender_stats %}
-          <div class="chip">{{ item.gender }}: {{ item.count }}</div>
-        {% endfor %}
-      </div>
+<h2>Daftar Report</h2>
+      <div class="table-container">
+<table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Status</th>
+            <th>Alasan</th>
+            <th>Pelapor</th>
+            <th>Dilaporkan</th>
+            <th>Akumulasi OK</th>
+            <th>Dibuat</th>
+            <th>Direview</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for report in reports %}
+            <tr>
+              <td>{{ report.id }}</td>
+              <td>
+                {% if report.status == 'open' %}
+                  <span class="status-bad">open</span>
+                {% elif report.status == 'approved' %}
+                  <span class="status-ok">approved</span>
+                {% else %}
+                  <span class="status-warn">rejected</span>
+                {% endif %}
+              </td>
+              <td>{{ report.reason }}</td>
+              <td>{{ report.reporter_name }} ({{ report.reporter_username }})</td>
+              <td>{{ report.reported_name }} ({{ report.reported_username }})</td>
+              <td>{{ report.approved_reports_count }}/{{ summary.auto_ban_threshold }}</td>
+              <td>{{ report.created_at }}</td>
+              <td>{{ report.reviewed_at }}</td>
+              <td>
+                <form class="inline-form" method="post" action="/reports/{{ report.id }}/review">
+                  <input type="hidden" name="page" value="{{ user_page.page }}">
+                  <input type="hidden" name="next" value="reports">
+                  <input type="hidden" name="action" value="approve">
+                  <button class="mini-btn ok" type="submit">Setujui</button>
+                </form>
+                <form class="inline-form" method="post" action="/reports/{{ report.id }}/review">
+                  <input type="hidden" name="page" value="{{ user_page.page }}">
+                  <input type="hidden" name="next" value="reports">
+                  <input type="hidden" name="action" value="reject">
+                  <button class="mini-btn warn" type="submit">Tolak</button>
+                </form>
+              </td>
+            </tr>
+          {% else %}
+            <tr>
+              <td colspan="9">Tidak ada report aktif yang perlu ditampilkan.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
+      <div class="hint">Report yang disetujui ikut dihitung ke threshold auto-ban. Saat mencapai {{ summary.auto_ban_threshold }} report disetujui, user otomatis diban.</div>
     </div>
-
-    <div class="section">
-      <h2>Active Chats</h2>
-      <div class="hint">Pantau sesi obrolan yang sedang berlangsung. Klik untuk melihat transcript.</div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/chats">Lihat Active Chats</a></div>
-
-      <div class="chips" style="margin-bottom: 12px;">
-        <div class="chip">Match Real-time: {{ realtime_matches_count }}</div>
-        <div class="chip">Total Riwayat Match: {{ match_history_total }}</div>
-      </div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/matches">Monitor Match & Riwayat</a></div>
-      
-      </div>
-  </div>
   </div>
 
-  
+  <script>
+    const selectAllUsers = document.getElementById("select-all-users");
+    const userCheckboxes = document.querySelectorAll(".user-checkbox");
+    const bulkForm = document.getElementById("bulk-users-form");
+
+    if (selectAllUsers) {
+      selectAllUsers.addEventListener("change", function () {
+        userCheckboxes.forEach((checkbox) => {
+          checkbox.checked = selectAllUsers.checked;
+        });
+      });
+    }
+
+    if (bulkForm) {
+      bulkForm.addEventListener("submit", function (event) {
+        const checked = Array.from(userCheckboxes).filter((item) => item.checked).length;
+        if (checked === 0) {
+          event.preventDefault();
+          alert("Pilih minimal satu user dulu.");
+          return;
+        }
+
+        const actionSelect = bulkForm.querySelector('select[name="action"]');
+        if (actionSelect && actionSelect.value === "delete") {
+          const ok = confirm(`Yakin hapus ${checked} user sekaligus?`);
+          if (!ok) {
+            event.preventDefault();
+          }
+        }
+      });
+    }
+  </script>
     </main>
   </div>
 </body>

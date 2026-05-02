@@ -1,10 +1,7 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LoveMatchID Admin Dashboard</title>
-        <style>
+import os
+import re
+
+css = """  <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
     
     :root {
@@ -158,9 +155,7 @@
       box-shadow: var(--shadow-sm);
       transition: all 0.1s ease-in-out;
       text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-block;
       text-transform: uppercase;
       font-size: 13px;
     }
@@ -217,51 +212,43 @@
     }
 
     /* Tables */
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-      border: 3px solid var(--border);
-      background: var(--panel);
-      box-shadow: var(--shadow-md);
-      margin-top: 16px;
-    }
     table {
       width: 100%;
       border-collapse: separate;
       border-spacing: 0;
       font-size: 14px;
+      border: 3px solid var(--border);
+      background: var(--panel);
+      box-shadow: var(--shadow-md);
+      margin-top: 16px;
+      display: block;
+      overflow-x: auto;
     }
     thead th {
       text-align: left;
-      background: var(--warn-bg);
-      color: var(--text);
+      background: var(--border);
+      color: var(--panel);
       font-weight: 700;
-      padding: 14px 16px;
+      padding: 12px;
       text-transform: uppercase;
       white-space: nowrap;
-      border-bottom: 3px solid var(--border);
-      border-right: 2px solid var(--border);
-    }
-    thead th:last-child {
-      border-right: none;
     }
     tbody td {
       border-bottom: 2px solid var(--border);
       border-right: 2px solid var(--border);
-      padding: 14px 16px;
+      padding: 12px;
       white-space: nowrap;
       font-weight: 600;
-      vertical-align: middle;
     }
     tbody tr td:last-child { border-right: none; }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr:nth-child(even) { background: #fafafa; }
-    tbody tr:hover { background: #f1f5f9; }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody tr:hover { background: #fef08a; }
 
     /* Status Colors */
-    .status-ok { background: var(--good-bg); color: var(--good); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
-    .status-warn { background: var(--warn-bg); color: var(--warn); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
-    .status-bad { background: var(--bad-bg); color: var(--bad); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
+    .status-ok { background: var(--good-bg); color: var(--good); padding: 2px 6px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
+    .status-warn { background: var(--warn-bg); color: var(--warn); padding: 2px 6px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
+    .status-bad { background: var(--bad-bg); color: var(--bad); padding: 2px 6px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
     
     .status-live { background: var(--good-bg); color: var(--good); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; box-shadow: 2px 2px 0px var(--border);}
     .status-idle { background: var(--chip); color: var(--text); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; box-shadow: 2px 2px 0px var(--border);}
@@ -310,7 +297,7 @@
     a { color: var(--border); text-decoration: underline; font-weight: 700; }
     a:hover { background: var(--warn-bg); text-decoration: none; }
     
-    .inline-form { display: inline-flex; gap: 8px; margin: 0; align-items: center; }
+    .inline-form { display: inline-flex; gap: 8px; margin: 0; }
     
     .mini-btn { padding: 4px 10px; font-size: 12px; }
     .mini-btn.ok { background: var(--good-bg); color: var(--good); }
@@ -330,85 +317,10 @@
     .pagination .page-info { font-weight: 700; font-size: 14px; text-transform: uppercase; }
 
     /* Specific to detail pages */
-    .detail-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-bottom: 24px;
-      background: var(--panel);
-      padding: 24px;
-      border: 3px solid var(--border);
-      box-shadow: var(--shadow-md);
-    }
-    .detail-header h1 {
-      margin: 0;
-      font-size: 32px;
-      background: var(--primary);
-      color: #fff;
-      padding: 6px 14px;
-      border: 3px solid var(--border);
-    }
-    .detail-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; margin-bottom: 24px; }
-    .item { 
-      border: 3px solid var(--border); 
-      padding: 24px; 
-      background: #fafafa; 
-      box-shadow: var(--shadow-sm); 
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-    .item:hover {
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
-      background: #fff;
-    }
-    .item .label { 
-      font-weight: 700; 
-      font-size: 13px; 
-      text-transform: uppercase; 
-      color: var(--muted); 
-      margin-bottom: 8px; 
-      border-bottom: 2px dashed var(--border); 
-      padding-bottom: 8px; 
-      letter-spacing: 0.5px;
-    }
-    .item .value { font-size: 18px; font-weight: 700; color: var(--text); word-break: break-word; }
-
-    .description-box {
-      border: 3px solid var(--border);
-      padding: 24px;
-      background: #fdf8e3; /* Light yellow background */
-      box-shadow: var(--shadow-md);
-      margin-top: 24px;
-    }
-    .description-box .label {
-      font-weight: 700;
-      font-size: 18px;
-      text-transform: uppercase;
-      margin-bottom: 16px;
-      display: inline-block;
-      background: var(--text);
-      color: #fff;
-      padding: 6px 14px;
-      border: 3px solid var(--text);
-    }
-    .description-box .value {
-      font-size: 16px;
-      font-weight: 600;
-      white-space: pre-wrap;
-      line-height: 1.6;
-    }
+    .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .item { border: 3px solid var(--border); padding: 16px; background: #fafafa; box-shadow: var(--shadow-sm); }
+    .item .label { font-weight: 700; font-size: 13px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; border-bottom: 2px solid var(--border); padding-bottom: 4px; }
+    .item .value { font-size: 16px; font-weight: 700; }
 
     .msg { border: 3px solid var(--border); margin-bottom: 12px; background: #fff; box-shadow: var(--shadow-sm); padding: 0; }
     .msg .sender { background: var(--border); color: #fff; padding: 6px 12px; font-weight: 700; font-size: 13px; }
@@ -427,18 +339,14 @@
       .layout-wrapper { flex-direction: column; }
       .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 3px solid var(--border); }
       .main-content { max-width: 100%; padding: 16px; }
-      .detail-header { flex-direction: column; align-items: flex-start; }
     }
-  </style>
-</head>
-<body>
-  <div class="layout-wrapper">
-        <aside class="sidebar">
+  </style>"""
+
+sidebar_html = """  <div class="layout-wrapper">
+    <aside class="sidebar">
       <h2>LoveMatchID</h2>
       <nav>
         <a href="/">Dashboard</a>
-        <a href="/users">Daftar User</a>
-        <a href="/reports">Daftar Report</a>
         <a href="/matches">Riwayat Match</a>
         <a href="/chats">Active Chats</a>
         <form class="logout-form" method="post" action="/logout">
@@ -446,57 +354,28 @@
         </form>
       </nav>
     </aside>
-    <main class="main-content">
-  <div class="container">
-    <div class="topbar">
-      <div>
-        <h1>LoveMatchID • Admin Dashboard</h1>
-        <div class="sub">Snapshot data terbaru • {{ summary.generated_at }} • Login: {{ dashboard_username }}</div>
-      </div>
-      
-    </div>
+    <main class="main-content">"""
 
-    {% if message_text %}
-      <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
-    {% endif %}
+for f in os.listdir('templates'):
+    if f.endswith('.html'):
+        path = os.path.join('templates', f)
+        with open(path, 'r') as file:
+            content = file.read()
+            
+        content = re.sub(r'<style>.*?</style>', css, content, flags=re.DOTALL)
+        
+        if f != 'login.html':
+            if 'class="layout-wrapper"' not in content:
+                content = content.replace('<body>', '<body>\n' + sidebar_html)
+                # also close layout-wrapper tags
+                content = content.replace('</body>', '    </main>\n  </div>\n</body>')
+                
+                # remove any inline logout forms
+                content = re.sub(r'<form\s+class="logout-form"[\s\S]*?</form>', '', content)
+                
+                # for dashboard, some <a href> "Lihat Active Chats" etc can remain in main content.
+        
+        with open(path, 'w') as file:
+            file.write(content)
 
-    <div class="cards">
-      <div class="card"><div class="label">Total Users</div><div class="value">{{ summary.total_users }}</div></div>
-      <div class="card"><div class="label">Users Aktif</div><div class="value status-ok">{{ summary.active_users }}</div></div>
-      <div class="card"><div class="label">Users Nonaktif</div><div class="value">{{ summary.inactive_users }}</div></div>
-      <div class="card"><div class="label">Sedang Diban</div><div class="value status-warn">{{ summary.banned_users }}</div></div>
-      <div class="card"><div class="label">Total Reports</div><div class="value">{{ summary.total_reports }}</div></div>
-      <div class="card"><div class="label">Open Reports</div><div class="value status-bad">{{ summary.open_reports }}</div></div>
-      <div class="card"><div class="label">Reports Disetujui</div><div class="value status-ok">{{ summary.approved_reports }}</div></div>
-      <div class="card"><div class="label">Reports Ditolak</div><div class="value status-warn">{{ summary.rejected_reports }}</div></div>
-    </div>
-
-    <div class="section">
-      <h2>Distribusi Gender</h2>
-      <div class="chips">
-        {% for item in summary.gender_stats %}
-          <div class="chip">{{ item.gender }}: {{ item.count }}</div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>Active Chats</h2>
-      <div class="hint">Pantau sesi obrolan yang sedang berlangsung. Klik untuk melihat transcript.</div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/chats">Lihat Active Chats</a></div>
-
-      <div class="chips" style="margin-bottom: 12px;">
-        <div class="chip">Match Real-time: {{ realtime_matches_count }}</div>
-        <div class="chip">Total Riwayat Match: {{ match_history_total }}</div>
-      </div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/matches">Monitor Match & Riwayat</a></div>
-      
-      </div>
-  </div>
-  </div>
-
-  
-    </main>
-  </div>
-</body>
-</html>
+print("Sidebar added and CSS updated")

@@ -127,5 +127,18 @@ class UserService:
     def list_broadcast_targets(self) -> list[int]:
         return self.users_repo.list_unique_telegram_ids()
 
+    def enqueue_pending_notification(self, target_telegram_id: int, text: str):
+        return self.users_repo.append_pending_notification(
+            target_telegram_id,
+            {
+                "type": "like_notice",
+                "text": text,
+                "created_at": now_utc(),
+            },
+        )
+
+    def consume_pending_notifications(self, telegram_id: int) -> list[dict]:
+        return self.users_repo.pull_pending_notifications(telegram_id)
+
 
 user_service = UserService(user_repository)

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LoveMatchID Admin Dashboard</title>
+  <title>Active Chats • Dashboard</title>
         <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
     
@@ -448,54 +448,41 @@
     </aside>
     <main class="main-content">
   <div class="container">
-    <div class="topbar">
-      <div>
-        <h1>LoveMatchID • Admin Dashboard</h1>
-        <div class="sub">Snapshot data terbaru • {{ summary.generated_at }} • Login: {{ dashboard_username }}</div>
-      </div>
-      
-    </div>
-
-    {% if message_text %}
-      <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
-    {% endif %}
-
-    <div class="cards">
-      <div class="card"><div class="label">Total Users</div><div class="value">{{ summary.total_users }}</div></div>
-      <div class="card"><div class="label">Users Aktif</div><div class="value status-ok">{{ summary.active_users }}</div></div>
-      <div class="card"><div class="label">Users Nonaktif</div><div class="value">{{ summary.inactive_users }}</div></div>
-      <div class="card"><div class="label">Sedang Diban</div><div class="value status-warn">{{ summary.banned_users }}</div></div>
-      <div class="card"><div class="label">Total Reports</div><div class="value">{{ summary.total_reports }}</div></div>
-      <div class="card"><div class="label">Open Reports</div><div class="value status-bad">{{ summary.open_reports }}</div></div>
-      <div class="card"><div class="label">Reports Disetujui</div><div class="value status-ok">{{ summary.approved_reports }}</div></div>
-      <div class="card"><div class="label">Reports Ditolak</div><div class="value status-warn">{{ summary.rejected_reports }}</div></div>
-    </div>
-
-    <div class="section">
-      <h2>Distribusi Gender</h2>
-      <div class="chips">
-        {% for item in summary.gender_stats %}
-          <div class="chip">{{ item.gender }}: {{ item.count }}</div>
+    <h1>Active Chats</h1>
+    <p><a href="/">⬅ Kembali</a> • <a href="/matches">Monitor Match</a></p>
+    <div class="table-container">
+<table>
+      <thead>
+        <tr>
+          <th>Pair Key</th>
+          <th>User A</th>
+          <th>User B</th>
+          <th>Mulai Chat</th>
+          <th>Update Terakhir</th>
+          <th>Jumlah Pesan</th>
+          <th>Pesan Terakhir</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in active_chats %}
+          <tr>
+            <td>{{ c.pair_key }}</td>
+            <td>{{ c.first_name }} ({{ c.first }})<br><small>{{ c.first_username }}</small></td>
+            <td>{{ c.second_name }} ({{ c.second }})<br><small>{{ c.second_username }}</small></td>
+            <td>{{ c.started_at }}</td>
+            <td>{{ c.updated_at }}</td>
+            <td>{{ c.message_count }}</td>
+            <td>{{ c.last_message_at }}</td>
+            <td><a href="/chats/{{ c.pair_key }}">Lihat Transcript</a> • <a href="/matches/{{ c.pair_key }}">Detail Match</a></td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8">Tidak ada sesi obrolan aktif saat ini.</td></tr>
         {% endfor %}
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>Active Chats</h2>
-      <div class="hint">Pantau sesi obrolan yang sedang berlangsung. Klik untuk melihat transcript.</div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/chats">Lihat Active Chats</a></div>
-
-      <div class="chips" style="margin-bottom: 12px;">
-        <div class="chip">Match Real-time: {{ realtime_matches_count }}</div>
-        <div class="chip">Total Riwayat Match: {{ match_history_total }}</div>
-      </div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/matches">Monitor Match & Riwayat</a></div>
-      
-      </div>
+      </tbody>
+    </table>
+</div>
   </div>
-  </div>
-
-  
     </main>
   </div>
 </body>

@@ -44,5 +44,13 @@ class MatchRepository:
     def count_all(self) -> int:
         return self.collection.count_documents({})
 
+    def list_recent(self, limit: int = 50, skip: int = 0):
+        return list(
+            self.collection.find().sort([("updated_at", -1), ("created_at", -1)]).skip(skip).limit(limit)
+        )
+
+    def find_by_pair_key(self, pair_key: str):
+        return self.collection.find_one({"pair_key": pair_key})
+
 
 match_repository = MatchRepository(matches_collection)

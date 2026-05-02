@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LoveMatchID Admin Dashboard</title>
+  <title>Monitor Match • Dashboard</title>
         <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
     
@@ -430,6 +430,7 @@
       .detail-header { flex-direction: column; align-items: flex-start; }
     }
   </style>
+  <meta http-equiv="refresh" content="{{ auto_refresh_seconds }}">
 </head>
 <body>
   <div class="layout-wrapper">
@@ -450,52 +451,102 @@
   <div class="container">
     <div class="topbar">
       <div>
-        <h1>LoveMatchID • Admin Dashboard</h1>
-        <div class="sub">Snapshot data terbaru • {{ summary.generated_at }} • Login: {{ dashboard_username }}</div>
+        <h1 style="margin:0;">Monitor Match</h1>
+        <p class="sub">Auto-refresh setiap {{ auto_refresh_seconds }} detik • Login: {{ dashboard_username }}</p>
       </div>
-      
-    </div>
-
-    {% if message_text %}
-      <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
-    {% endif %}
-
-    <div class="cards">
-      <div class="card"><div class="label">Total Users</div><div class="value">{{ summary.total_users }}</div></div>
-      <div class="card"><div class="label">Users Aktif</div><div class="value status-ok">{{ summary.active_users }}</div></div>
-      <div class="card"><div class="label">Users Nonaktif</div><div class="value">{{ summary.inactive_users }}</div></div>
-      <div class="card"><div class="label">Sedang Diban</div><div class="value status-warn">{{ summary.banned_users }}</div></div>
-      <div class="card"><div class="label">Total Reports</div><div class="value">{{ summary.total_reports }}</div></div>
-      <div class="card"><div class="label">Open Reports</div><div class="value status-bad">{{ summary.open_reports }}</div></div>
-      <div class="card"><div class="label">Reports Disetujui</div><div class="value status-ok">{{ summary.approved_reports }}</div></div>
-      <div class="card"><div class="label">Reports Ditolak</div><div class="value status-warn">{{ summary.rejected_reports }}</div></div>
+      <div>
+        <a class="btn-link" href="/">Kembali Dashboard</a>
+      </div>
     </div>
 
     <div class="section">
-      <h2>Distribusi Gender</h2>
+      <h2 style="margin:0;">Match Real-time (Sedang Chat)</h2>
       <div class="chips">
-        {% for item in summary.gender_stats %}
-          <div class="chip">{{ item.gender }}: {{ item.count }}</div>
-        {% endfor %}
+        <div class="chip">Total pasangan aktif: {{ realtime_matches|length }}</div>
       </div>
+      <div class="table-container">
+<table style="margin-top: 10px;">
+        <thead>
+          <tr>
+            <th>Pair Key</th>
+            <th>User A</th>
+            <th>User B</th>
+            <th>Mulai</th>
+            <th>Update Terakhir</th>
+            <th>Jumlah Pesan</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in realtime_matches %}
+            <tr>
+              <td>{{ row.pair_key }}<br><span class="status-live">LIVE</span></td>
+              <td>{{ row.first_name }} ({{ row.first }})<br><small>{{ row.first_username }}</small></td>
+              <td>{{ row.second_name }} ({{ row.second }})<br><small>{{ row.second_username }}</small></td>
+              <td>{{ row.started_at }}</td>
+              <td>{{ row.updated_at }}</td>
+              <td>{{ row.message_count }}</td>
+              <td><a href="/matches/{{ row.pair_key }}">Detail</a> • <a href="/chats/{{ row.pair_key }}">Transcript</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="7">Belum ada pasangan yang sedang chat saat ini.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
     </div>
 
     <div class="section">
-      <h2>Active Chats</h2>
-      <div class="hint">Pantau sesi obrolan yang sedang berlangsung. Klik untuk melihat transcript.</div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/chats">Lihat Active Chats</a></div>
-
-      <div class="chips" style="margin-bottom: 12px;">
-        <div class="chip">Match Real-time: {{ realtime_matches_count }}</div>
-        <div class="chip">Total Riwayat Match: {{ match_history_total }}</div>
+      <h2 style="margin:0;">Riwayat Match</h2>
+      <div class="chips">
+        <div class="chip">Total riwayat: {{ match_history.total_items }}</div>
       </div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/matches">Monitor Match & Riwayat</a></div>
-      
-      </div>
-  </div>
-  </div>
+      <div class="table-container">
+<table style="margin-top: 10px;">
+        <thead>
+          <tr>
+            <th>Pair Key</th>
+            <th>User A</th>
+            <th>User B</th>
+            <th>Status</th>
+            <th>Dibuat</th>
+            <th>Update Match</th>
+            <th>Jumlah Pesan</th>
+            <th>Pesan Terakhir</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in match_history_rows %}
+            <tr>
+              <td>{{ row.pair_key }}</td>
+              <td>{{ row.first_name }} ({{ row.first }})<br><small>{{ row.first_username }}</small></td>
+              <td>{{ row.second_name }} ({{ row.second }})<br><small>{{ row.second_username }}</small></td>
+              <td>{% if row.is_active_realtime %}<span class="status-live">Live</span>{% else %}<span class="status-idle">Riwayat</span>{% endif %}</td>
+              <td>{{ row.created_at }}</td>
+              <td>{{ row.updated_at }}</td>
+              <td>{{ row.message_count }}</td>
+              <td>{{ row.last_message_at }}</td>
+              <td><a href="/matches/{{ row.pair_key }}">Detail</a> • <a href="/chats/{{ row.pair_key }}">Chat</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="9">Belum ada riwayat match.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+</div>
 
-  
+      <div class="pagination">
+        {% if match_history.has_prev %}
+          <a class="btn-link" href="/matches?page={{ match_history.prev_page }}">⬅ Prev</a>
+        {% endif %}
+        <div class="page-info">Halaman {{ match_history.page }} / {{ match_history.total_pages }}</div>
+        {% if match_history.has_next %}
+          <a class="btn-link" href="/matches?page={{ match_history.next_page }}">Next ➡</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
     </main>
   </div>
 </body>

@@ -1,10 +1,7 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login Dashboard LoveMatchID</title>
-        <style>
+import os
+import re
+
+css = """  <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
     
     :root {
@@ -44,90 +41,10 @@
       letter-spacing: -0.02em;
     }
 
-    /* Layout wrapper for Sidebar */
-    .layout-wrapper {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      width: 250px;
-      background: var(--panel);
-      border-right: 3px solid var(--border);
-      padding: 24px 20px;
-      display: flex;
-      flex-direction: column;
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow-y: auto;
-    }
-
-    .sidebar h2 {
-      margin: 0 0 24px 0;
-      font-size: 22px;
-      background: var(--warn-bg);
-      padding: 6px 12px;
-      border: 3px solid var(--border);
-      display: inline-block;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .sidebar nav {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      flex-grow: 1;
-    }
-
-    .sidebar nav a {
-      display: block;
-      padding: 10px 14px;
-      border: 3px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      text-decoration: none;
-      font-weight: 700;
-      text-transform: uppercase;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.1s ease-in-out;
-    }
-
-    .sidebar nav a:hover {
-      background: var(--primary);
-      color: #fff;
-      transform: translate(-2px, -2px);
-      box-shadow: var(--shadow-md);
-    }
-
-    .sidebar nav a:active {
-      transform: translate(2px, 2px);
-      box-shadow: 0px 0px 0px var(--border);
-    }
-    
-    .sidebar .logout-form {
-      margin-top: auto;
-      padding-top: 24px;
-    }
-    .sidebar .logout-btn {
-      width: 100%;
-      text-align: center;
-      background: var(--bad-bg);
-      color: var(--bad);
-      font-size: 14px;
-      padding: 10px;
-    }
-
-    .main-content {
-      flex-grow: 1;
-      padding: 24px;
-      max-width: calc(100vw - 250px);
-      overflow-x: hidden;
-    }
-
     .container {
       max-width: 1200px;
       margin: 0 auto;
+      padding: 24px;
     }
 
     /* Topbar */
@@ -147,7 +64,7 @@
     .sub { color: var(--muted); margin: 0; font-weight: 600; font-size: 14px; }
 
     /* Buttons */
-    button, .btn-link {
+    button, .btn-link, .logout-btn {
       border: 3px solid var(--border);
       background: var(--panel);
       color: var(--text);
@@ -158,21 +75,21 @@
       box-shadow: var(--shadow-sm);
       transition: all 0.1s ease-in-out;
       text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      display: inline-block;
       text-transform: uppercase;
       font-size: 13px;
     }
-    button:hover, .btn-link:hover {
+    button:hover, .btn-link:hover, .logout-btn:hover {
       transform: translate(-2px, -2px);
       box-shadow: var(--shadow-md);
     }
-    button:active, .btn-link:active {
+    button:active, .btn-link:active, .logout-btn:active {
       transform: translate(2px, 2px);
       box-shadow: 0px 0px 0px var(--border);
     }
     
+    .logout-btn { background: var(--bad-bg); color: var(--bad); }
+
     /* Cards */
     .cards {
       display: grid;
@@ -217,51 +134,43 @@
     }
 
     /* Tables */
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-      border: 3px solid var(--border);
-      background: var(--panel);
-      box-shadow: var(--shadow-md);
-      margin-top: 16px;
-    }
     table {
       width: 100%;
       border-collapse: separate;
       border-spacing: 0;
       font-size: 14px;
+      border: 3px solid var(--border);
+      background: var(--panel);
+      box-shadow: var(--shadow-md);
+      margin-top: 16px;
+      display: block;
+      overflow-x: auto;
     }
     thead th {
       text-align: left;
-      background: var(--warn-bg);
-      color: var(--text);
+      background: var(--border);
+      color: var(--panel);
       font-weight: 700;
-      padding: 14px 16px;
+      padding: 12px;
       text-transform: uppercase;
       white-space: nowrap;
-      border-bottom: 3px solid var(--border);
-      border-right: 2px solid var(--border);
-    }
-    thead th:last-child {
-      border-right: none;
     }
     tbody td {
       border-bottom: 2px solid var(--border);
       border-right: 2px solid var(--border);
-      padding: 14px 16px;
+      padding: 12px;
       white-space: nowrap;
       font-weight: 600;
-      vertical-align: middle;
     }
     tbody tr td:last-child { border-right: none; }
     tbody tr:last-child td { border-bottom: none; }
-    tbody tr:nth-child(even) { background: #fafafa; }
-    tbody tr:hover { background: #f1f5f9; }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody tr:hover { background: #fef08a; }
 
     /* Status Colors */
-    .status-ok { background: var(--good-bg); color: var(--good); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
-    .status-warn { background: var(--warn-bg); color: var(--warn); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
-    .status-bad { background: var(--bad-bg); color: var(--bad); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
+    .status-ok { background: var(--good-bg); color: var(--good); padding: 2px 6px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
+    .status-warn { background: var(--warn-bg); color: var(--warn); padding: 2px 6px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
+    .status-bad { background: var(--bad-bg); color: var(--bad); padding: 2px 6px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
     
     .status-live { background: var(--good-bg); color: var(--good); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; box-shadow: 2px 2px 0px var(--border);}
     .status-idle { background: var(--chip); color: var(--text); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; box-shadow: 2px 2px 0px var(--border);}
@@ -310,7 +219,7 @@
     a { color: var(--border); text-decoration: underline; font-weight: 700; }
     a:hover { background: var(--warn-bg); text-decoration: none; }
     
-    .inline-form { display: inline-flex; gap: 8px; margin: 0; align-items: center; }
+    .inline-form { display: inline-flex; gap: 8px; margin: 0; }
     
     .mini-btn { padding: 4px 10px; font-size: 12px; }
     .mini-btn.ok { background: var(--good-bg); color: var(--good); }
@@ -330,85 +239,10 @@
     .pagination .page-info { font-weight: 700; font-size: 14px; text-transform: uppercase; }
 
     /* Specific to detail pages */
-    .detail-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-bottom: 24px;
-      background: var(--panel);
-      padding: 24px;
-      border: 3px solid var(--border);
-      box-shadow: var(--shadow-md);
-    }
-    .detail-header h1 {
-      margin: 0;
-      font-size: 32px;
-      background: var(--primary);
-      color: #fff;
-      padding: 6px 14px;
-      border: 3px solid var(--border);
-    }
-    .detail-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; margin-bottom: 24px; }
-    .item { 
-      border: 3px solid var(--border); 
-      padding: 24px; 
-      background: #fafafa; 
-      box-shadow: var(--shadow-sm); 
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      transition: all 0.2s ease;
-    }
-    .item:hover {
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
-      background: #fff;
-    }
-    .item .label { 
-      font-weight: 700; 
-      font-size: 13px; 
-      text-transform: uppercase; 
-      color: var(--muted); 
-      margin-bottom: 8px; 
-      border-bottom: 2px dashed var(--border); 
-      padding-bottom: 8px; 
-      letter-spacing: 0.5px;
-    }
-    .item .value { font-size: 18px; font-weight: 700; color: var(--text); word-break: break-word; }
-
-    .description-box {
-      border: 3px solid var(--border);
-      padding: 24px;
-      background: #fdf8e3; /* Light yellow background */
-      box-shadow: var(--shadow-md);
-      margin-top: 24px;
-    }
-    .description-box .label {
-      font-weight: 700;
-      font-size: 18px;
-      text-transform: uppercase;
-      margin-bottom: 16px;
-      display: inline-block;
-      background: var(--text);
-      color: #fff;
-      padding: 6px 14px;
-      border: 3px solid var(--text);
-    }
-    .description-box .value {
-      font-size: 16px;
-      font-weight: 600;
-      white-space: pre-wrap;
-      line-height: 1.6;
-    }
+    .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+    .item { border: 3px solid var(--border); padding: 16px; background: #fafafa; box-shadow: var(--shadow-sm); }
+    .item .label { font-weight: 700; font-size: 13px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; border-bottom: 2px solid var(--border); padding-bottom: 4px; }
+    .item .value { font-size: 16px; font-weight: 700; }
 
     .msg { border: 3px solid var(--border); margin-bottom: 12px; background: #fff; box-shadow: var(--shadow-sm); padding: 0; }
     .msg .sender { background: var(--border); color: #fff; padding: 6px 12px; font-weight: 700; font-size: 13px; }
@@ -422,35 +256,20 @@
     form label { font-weight: 700; text-transform: uppercase; font-size: 14px; margin-top: 8px; display: block;}
     form input { margin-top: 4px; margin-bottom: 12px; width: 100%;}
     form button[type="submit"] { width: 100%; padding: 12px; font-size: 16px; background: var(--primary); color: #fff;}
-    
-    @media (max-width: 768px) {
-      .layout-wrapper { flex-direction: column; }
-      .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 3px solid var(--border); }
-      .main-content { max-width: 100%; padding: 16px; }
-      .detail-header { flex-direction: column; align-items: flex-start; }
-    }
-  </style>
-</head>
-<body>
-  <div class="panel">
-    <h1>Login Dashboard</h1>
-    <p class="sub">Masuk pakai username dan password admin.</p>
+  </style>"""
 
-    {% if error_message %}
-      <div class="notice">{{ error_message }}</div>
-    {% endif %}
+for f in os.listdir('templates'):
+    if f.endswith('.html'):
+        path = os.path.join('templates', f)
+        with open(path, 'r') as file:
+            content = file.read()
+        
+        # Replace everything between <style> and </style>
+        new_content = re.sub(r'<style>.*?</style>', css, content, flags=re.DOTALL)
+        
+        # for login.html we need to make sure the panel class has login-panel or just panel works. 
+        # Actually our CSS styles .panel and .login-panel
+        with open(path, 'w') as file:
+            file.write(new_content)
 
-    <form method="post" action="/login">
-      <input type="hidden" name="next" value="{{ next_value }}">
-
-      <label for="username">Username</label>
-      <input id="username" type="text" name="username" autocomplete="username" required autofocus>
-
-      <label for="password">Password</label>
-      <input id="password" type="password" name="password" autocomplete="current-password" required>
-
-      <button type="submit">Masuk</button>
-    </form>
-  </div>
-</body>
-</html>
+print("CSS updated in all templates")

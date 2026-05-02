@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LoveMatchID Admin Dashboard</title>
+  <title>Transcript {{ pair_key }}</title>
         <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
     
@@ -410,12 +410,58 @@
       line-height: 1.6;
     }
 
-    .msg { border: 3px solid var(--border); margin-bottom: 12px; background: #fff; box-shadow: var(--shadow-sm); padding: 0; }
-    .msg .sender { background: var(--border); color: #fff; padding: 6px 12px; font-weight: 700; font-size: 13px; }
-    .msg .time { padding: 4px 12px; font-size: 12px; background: #f1f5f9; border-bottom: 2px solid var(--border); font-weight: 600; }
-    .msg pre { margin: 0; padding: 12px; white-space: pre-wrap; word-break: break-word; font-family: 'Space Grotesk', monospace; font-weight: 600; font-size: 14px; }
-    .msg img { border: 3px solid var(--border); border-radius: 0 !important; box-shadow: 2px 2px 0px var(--border); }
-    .msg .photo-container { padding: 12px 12px 0 12px; }
+    /* ── Chat layout ── */
+    .chat-wrap {
+      display: flex; flex-direction: column; gap: 2px;
+      max-width: 780px; margin: 0 auto;
+    }
+    .day-divider {
+      text-align: center; font-size: 11px; font-weight: 700;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: 0.06em; margin: 16px 0 8px;
+    }
+    /* Row: wraps name label + text */
+    .chat-row {
+      display: flex; flex-direction: column; max-width: 72%;
+      margin-bottom: 2px;
+    }
+    .chat-row.right { align-self: flex-end; align-items: flex-end; }
+    .chat-row.left  { align-self: flex-start; align-items: flex-start; }
+
+    /* Sender label — shown only on first msg of group */
+    .chat-sender {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.04em; margin-bottom: 3px;
+      padding: 0 2px;
+    }
+    .chat-row.right .chat-sender { color: var(--primary); }
+    .chat-row.left  .chat-sender { color: #b45309; }
+
+    /* Message line */
+    .chat-line {
+      font-size: 14px; font-weight: 600; line-height: 1.55;
+      padding: 3px 2px; white-space: pre-wrap; word-break: break-word;
+    }
+    .chat-row.right .chat-line { color: #1e3a5f; }
+    .chat-row.left  .chat-line { color: #1c1917; }
+
+    /* Time label */
+    .chat-time {
+      font-size: 10px; color: var(--muted); font-weight: 600;
+      margin-top: 1px; padding: 0 2px;
+    }
+
+    /* Photo */
+    .chat-photo { margin: 4px 0; }
+    .chat-photo img {
+      max-width: 220px; max-height: 220px;
+      border: 2px solid var(--border);
+      box-shadow: 2px 2px 0 var(--border); display: block;
+    }
+
+    /* Group separator (when sender changes) */
+    .chat-row + .chat-row.right.new-sender,
+    .chat-row + .chat-row.left.new-sender { margin-top: 12px; }
 
     /* Login Specific */
     .login-panel { width: min(420px, calc(100vw - 32px)); margin: 10vh auto; }
@@ -447,56 +493,142 @@
       </nav>
     </aside>
     <main class="main-content">
-  <div class="container">
-    <div class="topbar">
-      <div>
-        <h1>LoveMatchID • Admin Dashboard</h1>
-        <div class="sub">Snapshot data terbaru • {{ summary.generated_at }} • Login: {{ dashboard_username }}</div>
-      </div>
-      
+  <div class="container"
+       data-pair-key="{{ pair_key }}"
+       data-last-index="{% if messages %}{{ messages[-1].message_index }}{% else %}-1{% endif %}"
+       data-first-sender="{% if messages %}{{ messages[0].sender_id }}{% endif %}">
+
+    <div style="margin-bottom:16px;">
+      <h1 style="margin:0 0 4px;">Transcript: {{ pair_key }}</h1>
+      <p><a href="/chats">⬅ Kembali</a> • <a href="/">Dashboard</a></p>
     </div>
 
-    {% if message_text %}
-      <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
+    <!-- Legend -->
+    {% if messages %}
+    <div style="display:flex; gap:24px; margin-bottom:16px; padding:10px 14px; background:var(--panel); border:2px solid var(--border); box-shadow:2px 2px 0 var(--border);">
+      <span style="font-size:12px; font-weight:700; color:var(--primary);">▶ {{ messages[0].sender_name }} (KANAN)</span>
+      {% set ns2 = namespace(other=None) %}
+      {% for m in messages %}
+        {% if m.sender_id != messages[0].sender_id and ns2.other is none %}
+          {% set ns2.other = m %}
+        {% endif %}
+      {% endfor %}
+      {% if ns2.other %}
+      <span style="font-size:12px; font-weight:700; color:#b45309;">◀ {{ ns2.other.sender_name }} (KIRI)</span>
+      {% endif %}
+    </div>
     {% endif %}
 
-    <div class="cards">
-      <div class="card"><div class="label">Total Users</div><div class="value">{{ summary.total_users }}</div></div>
-      <div class="card"><div class="label">Users Aktif</div><div class="value status-ok">{{ summary.active_users }}</div></div>
-      <div class="card"><div class="label">Users Nonaktif</div><div class="value">{{ summary.inactive_users }}</div></div>
-      <div class="card"><div class="label">Sedang Diban</div><div class="value status-warn">{{ summary.banned_users }}</div></div>
-      <div class="card"><div class="label">Total Reports</div><div class="value">{{ summary.total_reports }}</div></div>
-      <div class="card"><div class="label">Open Reports</div><div class="value status-bad">{{ summary.open_reports }}</div></div>
-      <div class="card"><div class="label">Reports Disetujui</div><div class="value status-ok">{{ summary.approved_reports }}</div></div>
-      <div class="card"><div class="label">Reports Ditolak</div><div class="value status-warn">{{ summary.rejected_reports }}</div></div>
+    <div id="messages-list" class="chat-wrap">
+      {% set ns = namespace(prev_sender_id=None, first_sender_id=messages[0].sender_id if messages else None) %}
+      {% for m in messages %}
+        {% set side = 'right' if m.sender_id == ns.first_sender_id else 'left' %}
+        {% set is_new_sender = m.sender_id != ns.prev_sender_id %}
+        <div class="chat-row {{ side }}{% if is_new_sender %} new-sender{% endif %}" data-sender-id="{{ m.sender_id }}">
+          {% if is_new_sender %}
+            <span class="chat-sender">{{ m.sender_name }}</span>
+          {% endif %}
+          {% if m.photo_id %}
+            <div class="chat-photo"><img src="/api/photo/{{ m.photo_id }}" alt="Foto"></div>
+          {% endif %}
+          {% if m.text %}<span class="chat-line">{{ m.text }}</span>{% endif %}
+          <span class="chat-time">{{ m.sent_at_formatted }}</span>
+        </div>
+        {% set ns.prev_sender_id = m.sender_id %}
+      {% else %}
+        <div style="padding:40px; text-align:center; color:var(--muted); font-weight:600;">Belum ada pesan.</div>
+      {% endfor %}
     </div>
-
-    <div class="section">
-      <h2>Distribusi Gender</h2>
-      <div class="chips">
-        {% for item in summary.gender_stats %}
-          <div class="chip">{{ item.gender }}: {{ item.count }}</div>
-        {% endfor %}
-      </div>
-    </div>
-
-    <div class="section">
-      <h2>Active Chats</h2>
-      <div class="hint">Pantau sesi obrolan yang sedang berlangsung. Klik untuk melihat transcript.</div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/chats">Lihat Active Chats</a></div>
-
-      <div class="chips" style="margin-bottom: 12px;">
-        <div class="chip">Match Real-time: {{ realtime_matches_count }}</div>
-        <div class="chip">Total Riwayat Match: {{ match_history_total }}</div>
-      </div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/matches">Monitor Match & Riwayat</a></div>
-      
-      </div>
-  </div>
   </div>
 
-  
+  <script>
+    (function () {
+      const root = document.querySelector('.container');
+      const list = document.getElementById('messages-list');
+      if (!root || !list) return;
+
+      const pairKey = root.dataset.pairKey;
+      const firstSenderId = root.dataset.firstSender;
+      let lastIndex = Number(root.dataset.lastIndex || -1);
+      let lastRenderedSenderId = null;
+      let polling = false;
+
+      // capture last rendered sender from initial HTML
+      const existingRows = list.querySelectorAll('.chat-row');
+      if (existingRows.length) {
+        lastRenderedSenderId = existingRows[existingRows.length - 1].dataset.senderId;
+      }
+
+      function appendMessage(message) {
+        const side = String(message.sender_id) === String(firstSenderId) ? 'right' : 'left';
+        const isNewSender = String(message.sender_id) !== String(lastRenderedSenderId);
+
+        const row = document.createElement('div');
+        row.className = 'chat-row ' + side + (isNewSender ? ' new-sender' : '');
+        row.dataset.senderId = String(message.sender_id);
+
+        if (isNewSender) {
+          const label = document.createElement('span');
+          label.className = 'chat-sender';
+          label.textContent = message.sender_name;
+          row.appendChild(label);
+        }
+
+        if (message.photo_id) {
+          const photoDiv = document.createElement('div');
+          photoDiv.className = 'chat-photo';
+          const img = document.createElement('img');
+          img.src = '/api/photo/' + message.photo_id;
+          img.alt = 'Foto';
+          photoDiv.appendChild(img);
+          row.appendChild(photoDiv);
+        }
+
+        if (message.text) {
+          const line = document.createElement('span');
+          line.className = 'chat-line';
+          line.textContent = message.text;
+          row.appendChild(line);
+        }
+
+        const time = document.createElement('span');
+        time.className = 'chat-time';
+        time.textContent = message.sent_at_formatted;
+        row.appendChild(time);
+
+        list.appendChild(row);
+        lastRenderedSenderId = String(message.sender_id);
+      }
+
+      async function pollUpdates() {
+        if (polling) return;
+        polling = true;
+        try {
+          const response = await fetch(`/api/chats/${encodeURIComponent(pairKey)}/messages?after=${lastIndex}`);
+          if (!response.ok) return;
+          const payload = await response.json();
+          const messages = payload.messages || [];
+          if (!messages.length) return;
+
+          const placeholder = list.querySelector('[style*="text-align:center"]');
+          if (placeholder) placeholder.remove();
+
+          messages.forEach(appendMessage);
+          lastIndex = Number(payload.last_index);
+          root.dataset.lastIndex = String(lastIndex);
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        } catch (e) {
+          console.error('Poll error:', e);
+        } finally {
+          polling = false;
+        }
+      }
+
+      setInterval(pollUpdates, 3000);
+    })();
+  </script>
     </main>
   </div>
 </body>
 </html>
+

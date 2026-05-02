@@ -5,7 +5,6 @@ from ..keyboards import admin_menu_keyboard, main_menu_keyboard, next_profile_ke
 from ..services.matching_service import matching_service
 from ..services.user_service import user_service
 from ..utils import (
-    build_profile_link_by_id,
     escape_html,
     get_ban_notice,
     get_current_match,
@@ -32,13 +31,6 @@ async def send_daily_limit_notice(update: Update, context: ContextTypes.DEFAULT_
     )
 
 
-async def disabled_like_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Fitur Like sudah dinonaktifkan ya. Kalau profilnya kurang cocok, bisa lanjut atau report.",
-        reply_markup=next_profile_keyboard(),
-    )
-
-
 async def disabled_chat_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Fitur Match/Chat otomatis sudah dinonaktifkan ya.",
@@ -57,6 +49,13 @@ async def find_nearby_friends(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
 
     user_service.sync_identity(user)
+
+    pending_notifications = user_service.consume_pending_notifications(user.id)
+    for notification in pending_notifications:
+        notice_text = notification.get("text")
+        if notice_text:
+            await update.message.reply_text(notice_text)
+
     context.user_data.pop("pending_report", None)
     context.user_data.pop("recent_mutual_match_target_id", None)
     current_user = user_service.get_active_profile(user.id)
@@ -202,15 +201,7 @@ async def show_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if description:
         caption_lines.extend(["", escape_html(description)])
 
-    caption = "\n".join(caption_lines) + "\n\n"
-
-    profile_link = build_profile_link_by_id(match.get("telegram_id"))
-    if profile_link:
-        caption += f'💬 Chat: <a href="{profile_link}">Buka profil via ID Telegram</a>'
-    else:
-        caption += (
-            "👉 ID Telegram tidak tersedia"
-        )
+    caption = "\n".join(caption_lines)
 
     photo_file_id = match.get("photo_file_id")
     if photo_file_id:
@@ -242,14 +233,6 @@ async def show_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=next_profile_keyboard(),
             )
         )
-
-    await telegram_call_with_retry(
-        lambda: context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text="✩♬₊˚.🎧⋆☾✩♬₊˚.🎧⋆☾⋆⁺₊✧",
-            reply_markup=next_profile_keyboard(),
-        )
-    )
 
 
 async def next_match(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -305,8 +288,38 @@ async def like_current_match(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return
 
+    target_telegram_id = match.get("telegram_id")
+    target_name = match.get("name", "Seseorang")
+    
+    from ..config import logger
+    logger.info(f"Like action - result: {result}, target_id: {target_telegram_id}")
+
+    if result["status"] == "liked":
+        # One-sided like - send notification to target without revealing who
+        logger.info(f"One-sided like detected. Sending notification to {target_telegram_id}")
+        if target_telegram_id is not None:
+            try:
+                logger.info(f"About to send message to {target_telegram_id}")
+                response = await context.bot.send_message(
+                    chat_id=target_telegram_id,
+                    text="💖 Seseorang telah ❤️ Like profilmu!\n\nCoba cari tahu siapa dengan like balik mereka~\nKalau kalian saling like, kalian bisa terhubung 😊"
+                )
+                logger.info(f"✅ Notification sent successfully to {target_telegram_id}, message_id={response.message_id}")
+            except Exception as e:
+                logger.error(f"❌ Failed to send like notification to {target_telegram_id}: {type(e).__name__}: {str(e)}")
+                import traceback
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                user_service.enqueue_pending_notification(
+                    target_telegram_id,
+                    "💖 Seseorang telah ❤️ Like profilmu!\n\n"
+                    "Coba cari tahu siapa dengan like balik mereka~\n"
+                    "Kalau kalian saling like, kalian bisa terhubung 😊",
+                )
+        else:
+            logger.warning(f"target_telegram_id is None, cannot send notification")
+
     if result["is_match"]:
-        target_telegram_id = match.get("telegram_id")
+        # Mutual match - reveal Telegram IDs
         context.user_data["recent_mutual_match_target_id"] = target_telegram_id
 
         target_profile = (
@@ -320,49 +333,39 @@ async def like_current_match(update: Update, context: ContextTypes.DEFAULT_TYPE)
         else:
             contact_line = "Kontak dia belum tersedia."
 
-        if result.get("is_new_match"):
-            await update.message.reply_text(
-                "🎉 MATCH! Kalian saling like 💖\n"
-                f"{contact_line}\n\n"
-                "Icebreaker buat mulai chat:\n"
-                f"1) {icebreakers[0]}\n"
-                f"2) {icebreakers[1]}\n"
-                f"3) {icebreakers[2]}\n\n"
-                "Setelah chat jalan, klik tombol 💬 Sudah Chat ya.",
-                reply_markup=next_profile_keyboard(),
-            )
+        await update.message.reply_text(
+            "🎉 MATCH! Kalian saling like 💖\n"
+            f"{contact_line}\n\n"
+            "Icebreaker buat mulai chat:\n"
+            f"1) {icebreakers[0]}\n"
+            f"2) {icebreakers[1]}\n"
+            f"3) {icebreakers[2]}\n\n"
+            "Setelah chat jalan, klik tombol 💬 Sudah Chat ya.",
+            reply_markup=next_profile_keyboard(),
+        )
 
+        if result.get("is_new_match"):
             liker_name = profile.get("name", "Seseorang")
             liker_telegram_id = profile.get("telegram_id", "-")
             notify_icebreakers = matching_service.generate_icebreakers(target_profile or match, profile)
             if target_telegram_id is not None:
                 try:
-                    await context.bot.send_message(
-                        chat_id=target_telegram_id,
-                        text=(
-                            f"🎉 Kamu MATCH dengan {liker_name}!\n"
-                            f"Kontak Telegram ID: {liker_telegram_id}\n\n"
-                            "Coba mulai dari icebreaker ini:\n"
-                            f"1) {notify_icebreakers[0]}\n"
-                            f"2) {notify_icebreakers[1]}\n"
-                            f"3) {notify_icebreakers[2]}"
-                        ),
-                        reply_markup=main_menu_keyboard(),
+                    await telegram_call_with_retry(
+                        lambda: context.bot.send_message(
+                            chat_id=target_telegram_id,
+                            text=(
+                                f"🎉 MATCH! Kamu juga dilike oleh {liker_name}! 💖\n"
+                                f"Kontak Telegram ID: {liker_telegram_id}\n\n"
+                                "Coba mulai dari icebreaker ini:\n"
+                                f"1) {notify_icebreakers[0]}\n"
+                                f"2) {notify_icebreakers[1]}\n"
+                                f"3) {notify_icebreakers[2]}"
+                            ),
+                            reply_markup=main_menu_keyboard(),
+                        )
                     )
                 except Exception:
                     pass
-        else:
-            await update.message.reply_text(
-                "💖 Kalian sudah pernah mutual match sebelumnya."
-                f"\n{contact_line}\n"
-                "Kalau chat sudah jalan, klik 💬 Sudah Chat ya.",
-                reply_markup=next_profile_keyboard(),
-            )
-    else:
-        await update.message.reply_text(
-            f"💖 Kamu sudah like {match.get('name', 'profil ini')}!",
-            reply_markup=next_profile_keyboard(),
-        )
 
     if "matches" in context.user_data and "current_match_index" in context.user_data:
         context.user_data["current_match_index"] += 1

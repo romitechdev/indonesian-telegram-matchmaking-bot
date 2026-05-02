@@ -1,6 +1,7 @@
 from typing import Optional
 
 from bson.objectid import ObjectId
+from pymongo import ReturnDocument
 
 from ..db import users_collection
 
@@ -32,6 +33,24 @@ class UserRepository:
 
     def update_one(self, query: dict, updates: dict):
         return self.collection.update_one(query, {"$set": updates})
+
+    def append_pending_notification(self, telegram_id: int, notification: dict):
+        return self.collection.update_one(
+            {"telegram_id": telegram_id},
+            {"$push": {"pending_notifications": notification}},
+        )
+
+    def pull_pending_notifications(self, telegram_id: int) -> list[dict]:
+        document = self.collection.find_one_and_update(
+            {"telegram_id": telegram_id},
+            {"$set": {"pending_notifications": []}},
+            projection={"pending_notifications": 1},
+            return_document=ReturnDocument.BEFORE,
+        )
+        if not document:
+            return []
+        pending_notifications = document.get("pending_notifications") or []
+        return [item for item in pending_notifications if isinstance(item, dict)]
 
     def delete_by_object_id(self, mongo_id: ObjectId):
         return self.collection.delete_one({"_id": mongo_id})

@@ -30,7 +30,6 @@ from .config import (
     LOCATION,
     NAME,
     PHOTO,
-    REPORT_REASON_PATTERN,
     TELEGRAM_CONNECT_TIMEOUT,
     TELEGRAM_GET_UPDATES_READ_TIMEOUT,
     TELEGRAM_POOL_TIMEOUT,
@@ -39,8 +38,8 @@ from .config import (
     TELEGRAM_WRITE_TIMEOUT,
 )
 from .handlers import admin as admin_handlers
+from .handlers import chat as chat_handlers
 from .handlers import core as core_handlers
-from .handlers import matching as matching_handlers
 from .handlers import profile as profile_handlers
 from .handlers import user as user_handlers
 
@@ -170,29 +169,23 @@ def create_application() -> Application:
     application.add_handler(admin_handler)
 
     application.add_handler(
-        MessageHandler(filters.Regex("^🔍 Cari Teman$"), matching_handlers.find_nearby_friends)
+        MessageHandler(filters.Regex("^💬 Mulai Obrolan$"), chat_handlers.start_chat)
     )
+    application.add_handler(MessageHandler(filters.Regex("^⏭️ Next$"), chat_handlers.next_chat))
     application.add_handler(
-        MessageHandler(filters.Regex("^💖 Like$"), matching_handlers.disabled_like_action)
+        MessageHandler(filters.Regex("^(⛔ Stop|❌ Batal Cari)$"), chat_handlers.stop_chat)
     )
-    application.add_handler(
-        MessageHandler(filters.Regex("^🚫 Block$"), matching_handlers.block_current_match)
-    )
-    application.add_handler(
-        MessageHandler(filters.Regex("^⚠️ Report$"), matching_handlers.report_current_match)
-    )
-    application.add_handler(
-        MessageHandler(filters.Regex(REPORT_REASON_PATTERN), matching_handlers.submit_report_reason)
-    )
-    application.add_handler(
-        MessageHandler(filters.Regex("^💬 Sudah Chat$"), matching_handlers.disabled_chat_action)
-    )
+    application.add_handler(MessageHandler(filters.Regex(r"^⚠️ Laporkan$"), chat_handlers.report_current_chat))
+    from .config import REPORT_REASON_PATTERN
+    application.add_handler(MessageHandler(filters.Regex(REPORT_REASON_PATTERN), chat_handlers.submit_chat_report_reason))
     application.add_handler(
         MessageHandler(filters.Regex("^👀 Profile Saya$"), profile_handlers.view_my_profile)
     )
     application.add_handler(MessageHandler(filters.Regex("^🚪 Keluar$"), core_handlers.exit_bot))
-    application.add_handler(MessageHandler(filters.Regex("^➡️ Lanjut$"), matching_handlers.next_match))
     application.add_handler(MessageHandler(filters.Regex("^🏠 Menu Utama$"), core_handlers.main_menu))
+    application.add_handler(
+        MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, chat_handlers.relay_chat_message)
+    )
     application.add_error_handler(core_handlers.error_handler)
 
     return application

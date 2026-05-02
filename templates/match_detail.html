@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LoveMatchID Admin Dashboard</title>
+  <title>Detail Match {{ detail.pair_key }}</title>
         <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
     
@@ -410,12 +410,37 @@
       line-height: 1.6;
     }
 
-    .msg { border: 3px solid var(--border); margin-bottom: 12px; background: #fff; box-shadow: var(--shadow-sm); padding: 0; }
-    .msg .sender { background: var(--border); color: #fff; padding: 6px 12px; font-weight: 700; font-size: 13px; }
-    .msg .time { padding: 4px 12px; font-size: 12px; background: #f1f5f9; border-bottom: 2px solid var(--border); font-weight: 600; }
-    .msg pre { margin: 0; padding: 12px; white-space: pre-wrap; word-break: break-word; font-family: 'Space Grotesk', monospace; font-weight: 600; font-size: 14px; }
-    .msg img { border: 3px solid var(--border); border-radius: 0 !important; box-shadow: 2px 2px 0px var(--border); }
-    .msg .photo-container { padding: 12px 12px 0 12px; }
+    /* ── Chat message styles ── */
+    .msg-group { margin-bottom: 16px; }
+    .msg-group-header {
+      display: flex; align-items: baseline; gap: 10px;
+      padding: 0 0 4px 0; border-bottom: 2px solid var(--border);
+      margin-bottom: 6px;
+    }
+    .msg-group-header .sender-name {
+      font-weight: 700; font-size: 14px;
+      background: var(--border); color: #fff;
+      padding: 2px 10px;
+    }
+    .msg-group-header .sender-id { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .msg-group-header .sender-username { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .msg-bubble {
+      background: #fff; border: 2px solid var(--border);
+      padding: 8px 12px; margin-bottom: 4px;
+      box-shadow: 2px 2px 0 var(--border);
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .msg-bubble:last-child { margin-bottom: 0; }
+    .msg-bubble pre {
+      margin: 0; white-space: pre-wrap; word-break: break-word;
+      font-family: 'Space Grotesk', monospace; font-size: 14px; font-weight: 600;
+    }
+    .msg-bubble .msg-time {
+      font-size: 11px; color: var(--muted); font-weight: 600;
+      align-self: flex-end; margin-top: 2px;
+    }
+    .msg-bubble .photo-container { margin-bottom: 4px; }
+    .msg-bubble img { border: 2px solid var(--border); max-width: 280px; max-height: 280px; display: block; box-shadow: 2px 2px 0 var(--border); }
 
     /* Login Specific */
     .login-panel { width: min(420px, calc(100vw - 32px)); margin: 10vh auto; }
@@ -447,55 +472,173 @@
       </nav>
     </aside>
     <main class="main-content">
-  <div class="container">
-    <div class="topbar">
-      <div>
-        <h1>LoveMatchID • Admin Dashboard</h1>
-        <div class="sub">Snapshot data terbaru • {{ summary.generated_at }} • Login: {{ dashboard_username }}</div>
+  <div class="container" data-pair-key="{{ detail.pair_key }}" data-last-index="{% if detail.messages %}{{ detail.messages[-1].message_index }}{% else %}-1{% endif %}">
+    <h1 style="margin-top:0;">Detail Match: {{ detail.pair_key }}</h1>
+    <p><a href="/matches">⬅ Kembali ke Monitor Match</a> • <a href="/chats/{{ detail.pair_key }}">Buka Transcript Ringkas</a> • <a href="/">Dashboard</a></p>
+
+    <div class="section">
+      <h2 style="margin-top:0;">Status</h2>
+      <div class="meta">
+        <div class="item">
+          <div class="label">Status Real-time</div>
+          <div class="value">{% if detail.is_active_realtime %}<span class="status-live">SEDANG CHAT</span>{% else %}<span class="status-idle">TIDAK AKTIF</span>{% endif %}</div>
+        </div>
+        <div class="item">
+          <div class="label">Match Dibuat</div>
+          <div class="value">{{ detail.created_at }}</div>
+        </div>
+        <div class="item">
+          <div class="label">Match Diupdate</div>
+          <div class="value">{{ detail.updated_at }}</div>
+        </div>
+        <div class="item">
+          <div class="label">Chat Dimulai</div>
+          <div class="value">{{ detail.chat.started_at }}</div>
+        </div>
+        <div class="item">
+          <div class="label">Chat Update Terakhir</div>
+          <div class="value">{{ detail.chat.updated_at }}</div>
+        </div>
+        <div class="item">
+          <div class="label">Jumlah Pesan</div>
+          <div class="value">{{ detail.chat.message_count }}</div>
+        </div>
       </div>
-      
-    </div>
-
-    {% if message_text %}
-      <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
-    {% endif %}
-
-    <div class="cards">
-      <div class="card"><div class="label">Total Users</div><div class="value">{{ summary.total_users }}</div></div>
-      <div class="card"><div class="label">Users Aktif</div><div class="value status-ok">{{ summary.active_users }}</div></div>
-      <div class="card"><div class="label">Users Nonaktif</div><div class="value">{{ summary.inactive_users }}</div></div>
-      <div class="card"><div class="label">Sedang Diban</div><div class="value status-warn">{{ summary.banned_users }}</div></div>
-      <div class="card"><div class="label">Total Reports</div><div class="value">{{ summary.total_reports }}</div></div>
-      <div class="card"><div class="label">Open Reports</div><div class="value status-bad">{{ summary.open_reports }}</div></div>
-      <div class="card"><div class="label">Reports Disetujui</div><div class="value status-ok">{{ summary.approved_reports }}</div></div>
-      <div class="card"><div class="label">Reports Ditolak</div><div class="value status-warn">{{ summary.rejected_reports }}</div></div>
     </div>
 
     <div class="section">
-      <h2>Distribusi Gender</h2>
-      <div class="chips">
-        {% for item in summary.gender_stats %}
-          <div class="chip">{{ item.gender }}: {{ item.count }}</div>
-        {% endfor %}
+      <h2 style="margin-top:0;">Pasangan Match</h2>
+      <div class="meta">
+        <div class="item">
+          <div class="label">User A</div>
+          <div class="value">{{ detail.first.name }} ({{ detail.first.telegram_id }})</div>
+          <div class="time">{{ detail.first.username }}</div>
+        </div>
+        <div class="item">
+          <div class="label">User B</div>
+          <div class="value">{{ detail.second.name }} ({{ detail.second.telegram_id }})</div>
+          <div class="time">{{ detail.second.username }}</div>
+        </div>
       </div>
     </div>
 
-    <div class="section">
-      <h2>Active Chats</h2>
-      <div class="hint">Pantau sesi obrolan yang sedang berlangsung. Klik untuk melihat transcript.</div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/chats">Lihat Active Chats</a></div>
+    <div class="section" id="messages-section">
+      <h2 style="margin-top:0;">Obrolan</h2>
+      <!-- Legend -->
 
-      <div class="chips" style="margin-bottom: 12px;">
-        <div class="chip">Match Real-time: {{ realtime_matches_count }}</div>
-        <div class="chip">Total Riwayat Match: {{ match_history_total }}</div>
+      <div style="display:flex; gap:24px; margin-bottom:16px; padding:10px 14px; background:var(--bg); border:2px solid var(--border); box-shadow:2px 2px 0 var(--border);">
+        <span style="font-size:12px; font-weight:700; color:var(--primary);">▶ {{ detail.first.name }} (KANAN)</span>
+        <span style="font-size:12px; font-weight:700; color:#b45309;">◀ {{ detail.second.name }} (KIRI)</span>
       </div>
-      <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/matches">Monitor Match & Riwayat</a></div>
-      
-      </div>
+    <div id="messages-list" class="chat-wrap"
+         data-first-sender="{{ detail.first.telegram_id }}">
+      {% set ns = namespace(prev_sender_id=None) %}
+      {% for m in detail.messages %}
+        {% set side = 'right' if m.sender_id|string == detail.first.telegram_id|string else 'left' %}
+        {% set is_new = m.sender_id != ns.prev_sender_id %}
+        <div class="chat-row {{ side }}{% if is_new %} new-sender{% endif %}" data-sender-id="{{ m.sender_id }}" data-message-index="{{ m.message_index }}">
+          {% if is_new %}
+            <span class="chat-sender">{{ m.sender_name }}</span>
+          {% endif %}
+          {% if m.photo_id %}
+            <div class="chat-photo"><img src="/api/photo/{{ m.photo_id }}" alt="Foto"></div>
+          {% endif %}
+          {% if m.text %}<span class="chat-line">{{ m.text }}</span>{% endif %}
+          <span class="chat-time">{{ m.sent_at_formatted }}</span>
+        </div>
+        {% set ns.prev_sender_id = m.sender_id %}
+      {% else %}
+        <div style="padding:40px; text-align:center; color:var(--muted); font-weight:600;">Belum ada pesan untuk match ini.</div>
+      {% endfor %}
+    </div>
+    </div>
   </div>
-  </div>
+  <script>
+    (function () {
+      const root = document.querySelector('.container');
+      const list = document.getElementById('messages-list');
+      if (!root || !list) return;
 
-  
+      const pairKey = root.dataset.pairKey;
+      const firstSenderId = list.dataset.firstSender;
+      let lastIndex = Number(root.dataset.lastIndex || -1);
+      let lastRenderedSenderId = null;
+      let isPolling = false;
+
+      const existingRows = list.querySelectorAll('.chat-row');
+      if (existingRows.length) {
+        lastRenderedSenderId = existingRows[existingRows.length - 1].dataset.senderId;
+      }
+
+      function appendMessage(message) {
+        const side = String(message.sender_id) === String(firstSenderId) ? 'right' : 'left';
+        const isNewSender = String(message.sender_id) !== String(lastRenderedSenderId);
+
+        const row = document.createElement('div');
+        row.className = 'chat-row ' + side + (isNewSender ? ' new-sender' : '');
+        row.dataset.senderId = String(message.sender_id);
+        row.dataset.messageIndex = String(message.message_index);
+
+        if (isNewSender) {
+          const label = document.createElement('span');
+          label.className = 'chat-sender';
+          label.textContent = message.sender_name;
+          row.appendChild(label);
+        }
+
+        if (message.photo_id) {
+          const photoDiv = document.createElement('div');
+          photoDiv.className = 'chat-photo';
+          const img = document.createElement('img');
+          img.src = '/api/photo/' + message.photo_id;
+          img.alt = 'Foto';
+          photoDiv.appendChild(img);
+          row.appendChild(photoDiv);
+        }
+
+        if (message.text) {
+          const line = document.createElement('span');
+          line.className = 'chat-line';
+          line.textContent = message.text;
+          row.appendChild(line);
+        }
+
+        const time = document.createElement('span');
+        time.className = 'chat-time';
+        time.textContent = message.sent_at_formatted;
+        row.appendChild(time);
+
+        list.appendChild(row);
+        lastRenderedSenderId = String(message.sender_id);
+      }
+
+      async function pollUpdates() {
+        if (isPolling) return;
+        isPolling = true;
+        try {
+          const response = await fetch(`/api/chats/${encodeURIComponent(pairKey)}/messages?after=${lastIndex}`);
+          if (!response.ok) return;
+          const payload = await response.json();
+          const messages = payload.messages || [];
+          if (!messages.length) return;
+
+          const placeholder = list.querySelector('[style*="text-align:center"]');
+          if (placeholder) placeholder.remove();
+
+          messages.forEach(appendMessage);
+          lastIndex = Number(payload.last_index);
+          root.dataset.lastIndex = String(lastIndex);
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        } catch (error) {
+          console.error('Gagal update obrolan real-time:', error);
+        } finally {
+          isPolling = false;
+        }
+      }
+
+      setInterval(pollUpdates, 3000);
+    })();
+  </script>
     </main>
   </div>
 </body>
