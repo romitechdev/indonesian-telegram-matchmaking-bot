@@ -18,7 +18,9 @@ class MatchRepository:
         second_name: str,
         created_at,
     ):
-        low_id, high_id, pair_key = self._normalize_pair(first_telegram_id, second_telegram_id)
+        low_id, high_id, pair_key = self._normalize_pair(
+            first_telegram_id, second_telegram_id
+        )
 
         name_by_id = {
             first_telegram_id: first_name,
@@ -46,7 +48,10 @@ class MatchRepository:
 
     def list_recent(self, limit: int = 50, skip: int = 0):
         return list(
-            self.collection.find().sort([("updated_at", -1), ("created_at", -1)]).skip(skip).limit(limit)
+            self.collection.find()
+            .sort([("updated_at", -1), ("created_at", -1)])
+            .skip(skip)
+            .limit(limit)
         )
 
     def find_by_pair_key(self, pair_key: str):

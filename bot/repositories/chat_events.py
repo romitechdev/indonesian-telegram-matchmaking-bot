@@ -34,10 +34,36 @@ class ChatEventRepository:
         }
         return self.collection.update_one(query, updates, upsert=True)
 
-    def count_all(self) -> int:
-        return self.collection.count_documents({"started_at": {"$exists": True}})
+    @staticmethod
+    def _history_query():
+        return {
+            "$or": [
+                {"started_at": {"$exists": True}},
+                {"messages.0": {"$exists": True}},
+                {"updated_at": {"$exists": True}},
+            ]
+        }
 
-    def append_message(self, first_telegram_id: int, second_telegram_id: int, sender_id: int, text: str, sent_at, photo_id: str = None):
+    def count_all(self) -> int:
+        return self.collection.count_documents(self._history_query())
+
+    def list_recent_pairs(self, limit: int = 50, skip: int = 0):
+        return list(
+            self.collection.find(self._history_query())
+            .sort([("updated_at", -1), ("started_at", -1), ("created_at", -1)])
+            .skip(skip)
+            .limit(limit)
+        )
+
+    def append_message(
+        self,
+        first_telegram_id: int,
+        second_telegram_id: int,
+        sender_id: int,
+        text: str,
+        sent_at,
+        photo_id: str = None,
+    ):
         pair_key = self._pair_key(first_telegram_id, second_telegram_id)
         doc = {
             "sender_id": sender_id,
@@ -57,7 +83,9 @@ class ChatEventRepository:
             upsert=True,
         )
 
-    def list_messages_by_pair(self, first_telegram_id: int, second_telegram_id: int, limit: int = 100):
+    def list_messages_by_pair(
+        self, first_telegram_id: int, second_telegram_id: int, limit: int = 100
+    ):
         pair_key = self._pair_key(first_telegram_id, second_telegram_id)
         doc = self.collection.find_one({"pair_key": pair_key}, {"messages": 1})
         if not doc:

@@ -24,7 +24,9 @@ class ModerationService:
             return "rejected"
         return None
 
-    def _sync_auto_ban(self, reported_telegram_id: int, approved_reports_count: int, review_time):
+    def _sync_auto_ban(
+        self, reported_telegram_id: int, approved_reports_count: int, review_time
+    ):
         if reported_telegram_id is None:
             return "skipped"
 
@@ -40,9 +42,10 @@ class ModerationService:
             return "missing_user"
 
         if approved_reports_count >= AUTO_REPORT_BAN_THRESHOLD:
-            if reported_user.get("banned_by") not in {None, self.AUTO_BAN_SOURCE} and not reported_user.get(
-                "auto_report_ban"
-            ):
+            if reported_user.get("banned_by") not in {
+                None,
+                self.AUTO_BAN_SOURCE,
+            } and not reported_user.get("auto_report_ban"):
                 return "already_banned"
 
             self.users_repo.update_by_telegram_id(
@@ -61,7 +64,10 @@ class ModerationService:
             )
             return "applied"
 
-        if reported_user.get("auto_report_ban") and reported_user.get("banned_by") == self.AUTO_BAN_SOURCE:
+        if (
+            reported_user.get("auto_report_ban")
+            and reported_user.get("banned_by") == self.AUTO_BAN_SOURCE
+        ):
             self.users_repo.update_by_telegram_id(
                 reported_telegram_id,
                 {
@@ -89,7 +95,9 @@ class ModerationService:
 
             if reported_id not in approved_count_cache:
                 approved_count_cache[reported_id] = (
-                    self.reports_repo.count_by_reported_telegram_id(reported_id, "approved")
+                    self.reports_repo.count_by_reported_telegram_id(
+                        reported_id, "approved"
+                    )
                     if reported_id is not None
                     else 0
                 )
@@ -109,15 +117,19 @@ class ModerationService:
                     "reason": report.get("reason", "(tanpa alasan)"),
                     "status": report.get("status", "open"),
                     "created_at": format_utc(report.get("created_at")),
-                    "reviewed_at": format_utc(
-                        report.get("reviewed_at") or report.get("resolved_at")
-                    )
-                    if report.get("reviewed_at") or report.get("resolved_at")
-                    else "-",
+                    "reviewed_at": (
+                        format_utc(
+                            report.get("reviewed_at") or report.get("resolved_at")
+                        )
+                        if report.get("reviewed_at") or report.get("resolved_at")
+                        else "-"
+                    ),
                     "reporter_id": reporter_id,
                     "reported_id": reported_id,
                     "approved_reports_count": approved_count_cache[reported_id],
-                    "reporter_name": reporter.get("name") if reporter else "(tidak diketahui)",
+                    "reporter_name": (
+                        reporter.get("name") if reporter else "(tidak diketahui)"
+                    ),
                     "reported_name": (
                         reported.get("name")
                         if reported
@@ -153,11 +165,15 @@ class ModerationService:
             return {"status": "not_found"}
 
         review_time = now_utc()
-        self.reports_repo.review_report(report_id, review_status, reviewed_by, review_time)
+        self.reports_repo.review_report(
+            report_id, review_status, reviewed_by, review_time
+        )
 
         reported_telegram_id = report.get("reported_telegram_id")
         approved_reports_count = (
-            self.reports_repo.count_by_reported_telegram_id(reported_telegram_id, "approved")
+            self.reports_repo.count_by_reported_telegram_id(
+                reported_telegram_id, "approved"
+            )
             if reported_telegram_id is not None
             else 0
         )

@@ -219,7 +219,7 @@
     /* Tables */
     .table-container {
       width: 100%;
-      overflow-x: auto;
+      overflow: hidden;
       border: 3px solid var(--border);
       background: var(--panel);
       box-shadow: var(--shadow-md);
@@ -227,6 +227,7 @@
     }
     table {
       width: 100%;
+      table-layout: fixed;
       border-collapse: separate;
       border-spacing: 0;
       font-size: 14px;
@@ -238,9 +239,12 @@
       font-weight: 700;
       padding: 14px 16px;
       text-transform: uppercase;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
       border-bottom: 3px solid var(--border);
       border-right: 2px solid var(--border);
+      vertical-align: top;
     }
     thead th:last-child {
       border-right: none;
@@ -249,9 +253,11 @@
       border-bottom: 2px solid var(--border);
       border-right: 2px solid var(--border);
       padding: 14px 16px;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
       font-weight: 600;
-      vertical-align: middle;
+      vertical-align: top;
     }
     tbody tr td:last-child { border-right: none; }
     tbody tr:last-child td { border-bottom: none; }

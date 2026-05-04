@@ -19,8 +19,12 @@ class UserRepository:
     def find_by_telegram_id(self, telegram_id: int, projection: Optional[dict] = None):
         return self.collection.find_one({"telegram_id": telegram_id}, projection)
 
-    def find_active_by_telegram_id(self, telegram_id: int, projection: Optional[dict] = None):
-        return self.collection.find_one({"telegram_id": telegram_id, "is_active": True}, projection)
+    def find_active_by_telegram_id(
+        self, telegram_id: int, projection: Optional[dict] = None
+    ):
+        return self.collection.find_one(
+            {"telegram_id": telegram_id, "is_active": True}, projection
+        )
 
     def find_by_object_id(self, mongo_id: ObjectId, projection: Optional[dict] = None):
         return self.collection.find_one({"_id": mongo_id}, projection)
@@ -29,7 +33,9 @@ class UserRepository:
         return self.collection.insert_one(document)
 
     def update_by_telegram_id(self, telegram_id: int, updates: dict):
-        return self.collection.update_one({"telegram_id": telegram_id}, {"$set": updates})
+        return self.collection.update_one(
+            {"telegram_id": telegram_id}, {"$set": updates}
+        )
 
     def update_one(self, query: dict, updates: dict):
         return self.collection.update_one(query, {"$set": updates})
@@ -56,13 +62,17 @@ class UserRepository:
         return self.collection.delete_one({"_id": mongo_id})
 
     def update_many_by_object_ids(self, object_ids: list[ObjectId], updates: dict):
-        return self.collection.update_many({"_id": {"$in": object_ids}}, {"$set": updates})
+        return self.collection.update_many(
+            {"_id": {"$in": object_ids}}, {"$set": updates}
+        )
 
     def delete_many_by_object_ids(self, object_ids: list[ObjectId]):
         return self.collection.delete_many({"_id": {"$in": object_ids}})
 
     def list_recent(self, limit: int = 50, skip: int = 0):
-        return list(self.collection.find().sort("created_at", -1).skip(skip).limit(limit))
+        return list(
+            self.collection.find().sort("created_at", -1).skip(skip).limit(limit)
+        )
 
     def count_all(self) -> int:
         return self.collection.count_documents({})
@@ -81,7 +91,9 @@ class UserRepository:
         return list(self.collection.aggregate(pipeline))
 
     def list_unique_telegram_ids(self) -> list[int]:
-        ids = self.collection.distinct("telegram_id", {"telegram_id": {"$type": "int"}})
+        ids = self.collection.distinct(
+            "telegram_id", {"telegram_id": {"$type": ["int", "long"]}}
+        )
         return [user_id for user_id in ids if isinstance(user_id, int)]
 
 

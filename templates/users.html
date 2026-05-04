@@ -114,19 +114,20 @@
     }
 
     /* ── Table ──────────────────────── */
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    .table-wrap { overflow: hidden; }
+    table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 14px; }
     thead th {
       background: #1e293b; color: #e2e8f0;
       font-weight: 700; text-transform: uppercase;
       font-size: 12px; letter-spacing: 0.05em;
       padding: 12px 16px; text-align: left;
-      white-space: nowrap; border-bottom: 3px solid var(--border);
+      white-space: normal; word-break: break-word; overflow-wrap: anywhere;
+      border-bottom: 3px solid var(--border); vertical-align: top;
     }
     tbody tr { border-bottom: 2px solid #e2e8f0; transition: background 0.1s; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: #fef9c3; }
-    tbody td { padding: 12px 16px; vertical-align: middle; white-space: nowrap; font-weight: 600; }
+    tbody td { padding: 12px 16px; vertical-align: top; white-space: normal; word-break: break-word; overflow-wrap: anywhere; font-weight: 600; }
 
     /* ── Status badges ──────────────── */
     .badge {
@@ -142,11 +143,12 @@
     .badge::before { content: '●'; font-size: 8px; }
 
     /* ── Action buttons ─────────────── */
-    .action-group { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
+    .action-group { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; white-space: nowrap; }
     .btn {
-      display: inline-block; padding: 5px 10px;
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+      min-width: 30px; min-height: 30px; padding: 4px 6px;
       border: 2px solid var(--border); font-family: inherit;
-      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      font-size: 14px; font-weight: 700; text-transform: uppercase;
       cursor: pointer; text-decoration: none; color: var(--text);
       background: var(--panel); box-shadow: var(--s1); transition: all 0.1s;
       white-space: nowrap;
@@ -157,6 +159,20 @@
     .btn-ban { background: var(--warn-bg); }
     .btn-unban { background: var(--good-bg); }
     .btn-del { background: var(--bad-bg); color: #fff; }
+
+    .btn .label {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .btn-icon-only { font-size: 14px; line-height: 1; }
 
     /* ── Pagination ─────────────────── */
     .pagination {
@@ -178,6 +194,47 @@
       .layout { flex-direction: column; }
       .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 3px solid var(--border); }
       .main { padding: 16px; }
+    }
+
+    @media (max-width: 640px) {
+      .page-header, .table-card, .pagination { border-width: 2px; box-shadow: 2px 2px 0 #111; }
+      .table-card-header { padding: 12px 14px; }
+      .table-wrap { overflow: hidden; }
+      .table-wrap table,
+      .table-wrap thead,
+      .table-wrap tbody,
+      .table-wrap tr,
+      .table-wrap td { display: block; width: 100%; }
+      .table-wrap thead { display: none; }
+      .table-wrap tbody tr {
+        margin: 12px 0;
+        border: 2px solid var(--border);
+        background: var(--panel);
+        box-shadow: var(--s1);
+      }
+      .table-wrap tbody td {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border-right: none;
+        border-bottom: 1px dashed #cbd5e1;
+        white-space: normal;
+      }
+      .table-wrap tbody td::before {
+        content: attr(data-label);
+        flex: 0 0 42%;
+        max-width: 42%;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .table-wrap tbody td:last-child { border-bottom: none; }
+      .action-group { justify-content: flex-start; width: 100%; overflow: hidden; }
+      .action-group .btn,
+      .action-group button { width: auto; min-width: 30px; }
     }
   </style>
 </head>
@@ -231,13 +288,13 @@
             <tbody>
               {% for user in users %}
                 <tr>
-                  <td style="color:var(--muted); font-size:12px;">{{ loop.index + (user_page.page - 1) * 20 }}</td>
-                  <td style="font-weight:700;">{{ user.name }}</td>
-                  <td>{{ user.age }}</td>
-                  <td>{{ user.gender }}</td>
-                  <td style="font-family:monospace; font-size:13px;">{{ user.telegram_id }}</td>
-                  <td style="color:var(--muted);">{{ user.username or '-' }}</td>
-                  <td>
+                  <td data-label="#" style="color:var(--muted); font-size:12px;">{{ loop.index + (user_page.page - 1) * 20 }}</td>
+                  <td data-label="Nama" style="font-weight:700;">{{ user.name }}</td>
+                  <td data-label="Umur">{{ user.age }}</td>
+                  <td data-label="Gender">{{ user.gender }}</td>
+                  <td data-label="Telegram ID" style="font-family:monospace; font-size:13px;">{{ user.telegram_id }}</td>
+                  <td data-label="Username" style="color:var(--muted);">{{ user.username or '-' }}</td>
+                  <td data-label="Status">
                     {% if user.is_banned %}
                       <span class="badge badge-bad">Banned</span>
                     {% elif user.active %}
@@ -246,18 +303,18 @@
                       <span class="badge badge-idle">Nonaktif</span>
                     {% endif %}
                   </td>
-                  <td>
+                  <td data-label="Aksi">
                     <form class="action-group" method="post" action="/users/bulk-action">
                       <input type="hidden" name="selected_user_ids" value="{{ user.id }}">
                       <input type="hidden" name="page" value="{{ user_page.page }}">
                       <input type="hidden" name="next" value="users">
-                      <a class="btn btn-detail" href="/users/{{ user.id }}">Detail</a>
+                      <a class="btn btn-detail btn-icon-only" href="/users/{{ user.id }}" aria-label="Detail user" title="Detail user">👁<span class="label">Detail</span></a>
                       {% if user.is_banned %}
-                        <button class="btn btn-unban" type="submit" name="action" value="unban">Unban</button>
+                        <button class="btn btn-unban btn-icon-only" type="submit" name="action" value="unban" aria-label="Unban user" title="Unban user">↩<span class="label">Unban</span></button>
                       {% else %}
-                        <button class="btn btn-ban" type="submit" name="action" value="ban" onclick="return confirm('Ban user {{ user.name }}?')">Ban</button>
+                        <button class="btn btn-ban btn-icon-only" type="submit" name="action" value="ban" aria-label="Ban user" title="Ban user" onclick="return confirm('Ban user {{ user.name }}?')">⛔<span class="label">Ban</span></button>
                       {% endif %}
-                      <button class="btn btn-del" type="submit" name="action" value="delete" onclick="return confirm('Hapus user {{ user.name }}? Tindakan ini tidak bisa dibatalkan!')">Hapus</button>
+                      <button class="btn btn-del btn-icon-only" type="submit" name="action" value="delete" aria-label="Hapus user" title="Hapus user" onclick="return confirm('Hapus user {{ user.name }}? Tindakan ini tidak bisa dibatalkan!')">🗑<span class="label">Hapus</span></button>
                     </form>
                   </td>
                 </tr>

@@ -1,5 +1,6 @@
 from telegram.ext import (
     Application,
+    CallbackQueryHandler,
     CommandHandler,
     ConversationHandler,
     MessageHandler,
@@ -15,9 +16,6 @@ from .config import (
     ADMIN_TEMP_BAN,
     ADMIN_VIEW_USER,
     AGE,
-    QUIZ_COMM_STYLE,
-    QUIZ_RELATIONSHIP_GOAL,
-    QUIZ_VALUE,
     DESCRIPTION,
     EDIT_AGE,
     EDIT_CHOICE,
@@ -40,6 +38,7 @@ from .config import (
 from .handlers import admin as admin_handlers
 from .handlers import chat as chat_handlers
 from .handlers import core as core_handlers
+from .handlers import discover as discover_handlers
 from .handlers import profile as profile_handlers
 from .handlers import user as user_handlers
 
@@ -52,11 +51,17 @@ def build_admin_action_handlers():
             filters.Regex("^(🧾 Review Report|✅ Resolve Report)$"),
             admin_handlers.resolve_report_prompt,
         ),
-        MessageHandler(filters.Regex("^⛔ Ban Sementara$"), admin_handlers.temp_ban_prompt),
+        MessageHandler(
+            filters.Regex("^⛔ Ban Sementara$"), admin_handlers.temp_ban_prompt
+        ),
         MessageHandler(filters.Regex("^🚨 Reports$"), admin_handlers.list_reports),
-        MessageHandler(filters.Regex("^📣 Broadcast$"), admin_handlers.broadcast_prompt),
+        MessageHandler(
+            filters.Regex("^📣 Broadcast$"), admin_handlers.broadcast_prompt
+        ),
         MessageHandler(filters.Regex("^🔍 Find User$"), admin_handlers.find_user),
-        MessageHandler(filters.Regex("^❌ Delete User$"), admin_handlers.delete_user_prompt),
+        MessageHandler(
+            filters.Regex("^❌ Delete User$"), admin_handlers.delete_user_prompt
+        ),
         MessageHandler(filters.Regex("^🏠 Main Menu$"), admin_handlers.admin_main_menu),
     ]
 
@@ -68,16 +73,24 @@ def build_admin_states():
             MessageHandler(filters.TEXT & ~filters.COMMAND, admin_handlers.view_user)
         ],
         ADMIN_DELETE_CONFIRM: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, admin_handlers.delete_user_confirm)
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND, admin_handlers.delete_user_confirm
+            )
         ],
         ADMIN_RESOLVE_REPORT: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, admin_handlers.resolve_report_confirm)
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND, admin_handlers.resolve_report_confirm
+            )
         ],
         ADMIN_TEMP_BAN: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, admin_handlers.temp_ban_confirm)
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND, admin_handlers.temp_ban_confirm
+            )
         ],
         ADMIN_BROADCAST: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, admin_handlers.broadcast_send)
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND, admin_handlers.broadcast_send
+            )
         ],
     }
 
@@ -107,18 +120,13 @@ def create_application() -> Application:
     user_states = {
         NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_name)],
         AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_age)],
-        GENDER: [MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_gender)],
+        GENDER: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_gender)
+        ],
         DESCRIPTION: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_description)
-        ],
-        QUIZ_VALUE: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_quiz_value)
-        ],
-        QUIZ_COMM_STYLE: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_quiz_communication_style)
-        ],
-        QUIZ_RELATIONSHIP_GOAL: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, user_handlers.get_quiz_relationship_goal)
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND, user_handlers.get_description
+            )
         ],
         LOCATION: [MessageHandler(filters.LOCATION, user_handlers.get_location)],
         PHOTO: [MessageHandler(filters.PHOTO, user_handlers.get_photo)],
@@ -134,21 +142,35 @@ def create_application() -> Application:
 
     edit_handler = ConversationHandler(
         entry_points=[
-            MessageHandler(filters.Regex("^✏️ Edit Profile$"), profile_handlers.edit_profile)
+            MessageHandler(
+                filters.Regex("^✏️ Edit Profile$"), profile_handlers.edit_profile
+            )
         ],
         states={
             EDIT_CHOICE: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, profile_handlers.edit_choice)
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, profile_handlers.edit_choice
+                )
             ],
             EDIT_NAME: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, profile_handlers.edit_name)
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, profile_handlers.edit_name
+                )
             ],
-            EDIT_AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, profile_handlers.edit_age)],
+            EDIT_AGE: [
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, profile_handlers.edit_age
+                )
+            ],
             EDIT_GENDER: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, profile_handlers.edit_gender)
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, profile_handlers.edit_gender
+                )
             ],
             EDIT_DESCRIPTION: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, profile_handlers.edit_description)
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND, profile_handlers.edit_description
+                )
             ],
             EDIT_LOCATION: [
                 MessageHandler(filters.LOCATION, profile_handlers.edit_location)
@@ -171,20 +193,76 @@ def create_application() -> Application:
     application.add_handler(
         MessageHandler(filters.Regex("^💬 Mulai Obrolan$"), chat_handlers.start_chat)
     )
-    application.add_handler(MessageHandler(filters.Regex("^⏭️ Next$"), chat_handlers.next_chat))
     application.add_handler(
-        MessageHandler(filters.Regex("^(⛔ Stop|❌ Batal Cari)$"), chat_handlers.stop_chat)
+        MessageHandler(filters.Regex("^⏭️ Next$"), chat_handlers.next_chat)
     )
-    application.add_handler(MessageHandler(filters.Regex(r"^⚠️ Laporkan$"), chat_handlers.report_current_chat))
+    application.add_handler(
+        MessageHandler(
+            filters.Regex("^(⛔ Stop|❌ Batal Cari)$"), chat_handlers.stop_chat
+        )
+    )
+    application.add_handler(
+        MessageHandler(
+            filters.Regex(r"^⚠️ Laporkan$"), chat_handlers.report_current_chat
+        )
+    )
     from .config import REPORT_REASON_PATTERN
-    application.add_handler(MessageHandler(filters.Regex(REPORT_REASON_PATTERN), chat_handlers.submit_chat_report_reason))
+
     application.add_handler(
-        MessageHandler(filters.Regex("^👀 Profile Saya$"), profile_handlers.view_my_profile)
+        MessageHandler(
+            filters.Regex(REPORT_REASON_PATTERN),
+            chat_handlers.submit_chat_report_reason,
+        )
     )
-    application.add_handler(MessageHandler(filters.Regex("^🚪 Keluar$"), core_handlers.exit_bot))
-    application.add_handler(MessageHandler(filters.Regex("^🏠 Menu Utama$"), core_handlers.main_menu))
     application.add_handler(
-        MessageHandler((filters.TEXT | filters.PHOTO) & ~filters.COMMAND, chat_handlers.relay_chat_message)
+        MessageHandler(
+            filters.Regex("^👀 Profile Saya$"), profile_handlers.view_my_profile
+        )
+    )
+    application.add_handler(
+        MessageHandler(filters.Regex("^🚪 Keluar$"), core_handlers.exit_bot)
+    )
+    application.add_handler(
+        MessageHandler(filters.Regex("^🏠 Menu Utama$"), core_handlers.main_menu)
+    )
+    # ── Discover feature handlers ──────────────────────────────────────
+    application.add_handler(
+        MessageHandler(
+            filters.Regex("^👁️ Lihat Profil$"), discover_handlers.start_discover
+        )
+    )
+    application.add_handler(
+        MessageHandler(filters.Regex("^❤️$"), discover_handlers.discover_love)
+    )
+    application.add_handler(
+        MessageHandler(
+            filters.Regex("^💌$"), discover_handlers.discover_send_message_prompt
+        )
+    )
+    application.add_handler(
+        MessageHandler(filters.Regex("^👎$"), discover_handlers.discover_dislike)
+    )
+    # CallbackQueryHandler for InlineKeyboard responses (love back, dislike, show msg, etc)
+    application.add_handler(
+        CallbackQueryHandler(
+            discover_handlers.handle_discover_callback, pattern="^dsc_"
+        )
+    )
+
+    # CallbackQueryHandler for match notifications (show/ignore)
+    from .handlers import matching_callbacks as matching_callback_handlers
+
+    application.add_handler(
+        CallbackQueryHandler(
+            matching_callback_handlers.handle_match_callback, pattern="^match_"
+        )
+    )
+
+    application.add_handler(
+        MessageHandler(
+            (filters.TEXT | filters.PHOTO | filters.Document.IMAGE) & ~filters.COMMAND,
+            chat_handlers.relay_chat_message,
+        )
     )
     application.add_error_handler(core_handlers.error_handler)
 

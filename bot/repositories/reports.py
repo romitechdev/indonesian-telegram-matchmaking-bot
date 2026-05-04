@@ -11,7 +11,9 @@ class ReportRepository:
         return self.collection.insert_one(document)
 
     def list_recent(self, limit: int = 30, query: dict | None = None):
-        return list(self.collection.find(query or {}).sort("created_at", -1).limit(limit))
+        return list(
+            self.collection.find(query or {}).sort("created_at", -1).limit(limit)
+        )
 
     def count_all(self) -> int:
         return self.collection.count_documents({})
@@ -22,7 +24,9 @@ class ReportRepository:
     def count_by_status(self, status: str) -> int:
         return self.collection.count_documents({"status": status})
 
-    def count_by_reported_telegram_id(self, reported_telegram_id: int, status: str | None = None) -> int:
+    def count_by_reported_telegram_id(
+        self, reported_telegram_id: int, status: str | None = None
+    ) -> int:
         query = {"reported_telegram_id": reported_telegram_id}
         if status:
             query["status"] = status

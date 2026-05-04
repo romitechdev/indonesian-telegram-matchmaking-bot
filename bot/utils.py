@@ -15,7 +15,6 @@ from .config import (
     logger,
 )
 
-
 ResultType = TypeVar("ResultType")
 
 
@@ -117,11 +116,12 @@ def get_local_day_window(reference_time=None):
 
 
 def format_utc(value):
-    """Format datetime value in UTC for UI messages"""
+    """Format datetime value in WIB for UI messages"""
     normalized = ensure_utc(value)
     if not normalized:
         return "-"
-    return normalized.strftime("%d/%m/%Y %H:%M UTC")
+    local_value = normalized.astimezone(MATCH_RESET_TZ)
+    return local_value.strftime("%d/%m/%Y %H:%M WIB")
 
 
 def is_temporarily_banned(profile):

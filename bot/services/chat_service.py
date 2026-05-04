@@ -2,13 +2,15 @@ from pymongo import ReturnDocument
 
 from ..repositories.users import user_repository
 from ..repositories.chat_events import chat_event_repository
+from ..repositories.matches import match_repository
 from ..utils import get_target_gender, haversine, not_banned_query, now_utc
 
 
 class ChatService:
-    def __init__(self, users_repo, chat_events_repo):
+    def __init__(self, users_repo, chat_events_repo, matches_repo):
         self.users_repo = users_repo
         self.chat_events_repo = chat_events_repo
+        self.matches_repo = matches_repo
 
     def get_profile(self, telegram_id: int):
         return self.users_repo.find_by_telegram_id(telegram_id)
@@ -43,7 +45,9 @@ class ChatService:
             return None
         return haversine(source_lat, source_lon, candidate_lat, candidate_lon)
 
-    def _ordered_candidate_ids(self, telegram_id: int, target_gender: str, current_time, profile: dict):
+    def _ordered_candidate_ids(
+        self, telegram_id: int, target_gender: str, current_time, profile: dict
+    ):
         query = {
             "telegram_id": {"$ne": telegram_id},
             "waiting_chat": True,
@@ -72,14 +76,20 @@ class ChatService:
             if distance is None:
                 without_distance.append(candidate)
                 continue
-            with_distance.append((distance, candidate.get("last_updated") or current_time, candidate_id))
+            with_distance.append(
+                (distance, candidate.get("last_updated") or current_time, candidate_id)
+            )
 
         with_distance.sort(key=lambda item: (item[0], item[1]))
         without_distance.sort(key=lambda item: item.get("last_updated") or current_time)
 
         ordered_ids = [item[2] for item in with_distance]
         ordered_ids.extend(
-            [candidate.get("telegram_id") for candidate in without_distance if candidate.get("telegram_id")]
+            [
+                candidate.get("telegram_id")
+                for candidate in without_distance
+                if candidate.get("telegram_id")
+            ]
         )
         return ordered_ids
 
@@ -141,6 +151,26 @@ class ChatService:
                     "last_updated": current_time,
                 },
             )
+
+            own_name = profile.get("name") or "Tanpa Nama"
+            partner_profile = (
+                self.users_repo.find_by_telegram_id(candidate_id, {"name": 1}) or {}
+            )
+            partner_name = partner_profile.get("name") or "Tanpa Nama"
+            self.matches_repo.upsert_match(
+                first_telegram_id=telegram_id,
+                second_telegram_id=candidate_id,
+                first_name=own_name,
+                second_name=partner_name,
+                created_at=current_time,
+            )
+            self.chat_events_repo.upsert_chat_started(
+                first_telegram_id=telegram_id,
+                second_telegram_id=candidate_id,
+                started_by=telegram_id,
+                started_at=current_time,
+            )
+
             return {
                 "status": "matched",
                 "partner_id": candidate_id,
@@ -191,11 +221,15 @@ class ChatService:
 
         return partner_id
 
-    def record_message(self, sender_id: int, recipient_id: int, text: str, photo_id: str = None):
+    def record_message(
+        self, sender_id: int, recipient_id: int, text: str, photo_id: str = None
+    ):
         try:
             first = min(sender_id, recipient_id)
             second = max(sender_id, recipient_id)
-            return self.chat_events_repo.append_message(first, second, sender_id, text, now_utc(), photo_id)
+            return self.chat_events_repo.append_message(
+                first, second, sender_id, text, now_utc(), photo_id
+            )
         except Exception:
             return None
 
@@ -205,4 +239,4 @@ class ChatService:
         return self.chat_events_repo.list_messages_by_pair(first, second, limit=limit)
 
 
-chat_service = ChatService(user_repository, chat_event_repository)
+chat_service = ChatService(user_repository, chat_event_repository, match_repository)

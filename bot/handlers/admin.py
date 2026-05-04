@@ -196,7 +196,9 @@ async def resolve_report_confirm(update: Update, context: ContextTypes.DEFAULT_T
         )
         return ADMIN_ACTION
 
-    result = moderation_service.review_report(report_id_text, action, update.effective_user.id)
+    result = moderation_service.review_report(
+        report_id_text, action, update.effective_user.id
+    )
     if result["status"] == "invalid_id":
         await update.message.reply_text(
             "❌ Format ID report tidak valid.",
@@ -278,7 +280,9 @@ async def temp_ban_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ADMIN_ACTION
 
-    reason = " ".join(parts[reason_start_index:]).strip() or "Pelanggaran aturan komunitas"
+    reason = (
+        " ".join(parts[reason_start_index:]).strip() or "Pelanggaran aturan komunitas"
+    )
     ban_result = user_service.set_temp_ban(
         target_telegram_id,
         duration_hours,

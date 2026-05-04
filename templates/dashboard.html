@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LoveMatchID Admin Dashboard</title>
-        <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
-    
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
     :root {
       --bg: #f4f4f0;
       --panel: #ffffff;
@@ -21,15 +21,17 @@
       --bad-bg: #ef4444;
       --chip: #e0e0e0;
       --primary: #3b82f6;
-      --shadow-sm: 2px 2px 0px var(--border);
-      --shadow-md: 4px 4px 0px var(--border);
-      --shadow-lg: 6px 6px 0px var(--border);
+      --s1: 2px 2px 0px var(--border);
+      --s2: 4px 4px 0px var(--border);
+      --s3: 6px 6px 0px var(--border);
+      --shadow-sm: var(--s1);
+      --shadow-md: var(--s2);
+      --shadow-lg: var(--s3);
     }
 
-    * { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     
     body {
-      margin: 0;
       background: var(--bg);
       background-image: radial-gradient(#cbd5e1 2px, transparent 2px);
       background-size: 24px 24px;
@@ -44,91 +46,41 @@
       letter-spacing: -0.02em;
     }
 
-    /* Layout wrapper for Sidebar */
-    .layout-wrapper {
-      display: flex;
-      min-height: 100vh;
-    }
-
+    .layout { display: flex; min-height: 100vh; }
     .sidebar {
-      width: 250px;
+      width: 240px; flex-shrink: 0;
       background: var(--panel);
       border-right: 3px solid var(--border);
-      padding: 24px 20px;
-      display: flex;
-      flex-direction: column;
-      position: sticky;
-      top: 0;
-      height: 100vh;
+      padding: 24px 16px;
+      display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh;
       overflow-y: auto;
     }
-
-    .sidebar h2 {
-      margin: 0 0 24px 0;
-      font-size: 22px;
-      background: var(--warn-bg);
-      padding: 6px 12px;
-      border: 3px solid var(--border);
-      display: inline-block;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .sidebar nav {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      flex-grow: 1;
-    }
-
-    .sidebar nav a {
+    .sidebar .logo {
+      font-size: 18px; font-weight: 700; text-transform: uppercase;
+      background: var(--warn-bg); border: 3px solid var(--border);
+      padding: 6px 12px; box-shadow: var(--s1); margin-bottom: 28px;
       display: block;
-      padding: 10px 14px;
-      border: 3px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      text-decoration: none;
-      font-weight: 700;
-      text-transform: uppercase;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.1s ease-in-out;
     }
-
-    .sidebar nav a:hover {
-      background: var(--primary);
-      color: #fff;
-      transform: translate(-2px, -2px);
-      box-shadow: var(--shadow-md);
+    .sidebar nav { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .sidebar nav a {
+      display: block; padding: 10px 12px;
+      border: 2px solid var(--border); background: var(--bg);
+      color: var(--text); text-decoration: none;
+      font-weight: 700; font-size: 13px; text-transform: uppercase;
+      box-shadow: var(--s1); transition: all 0.1s;
     }
-
-    .sidebar nav a:active {
-      transform: translate(2px, 2px);
-      box-shadow: 0px 0px 0px var(--border);
-    }
-    
-    .sidebar .logout-form {
-      margin-top: auto;
-      padding-top: 24px;
-    }
+    .sidebar nav a:hover { background: var(--primary); color: #fff; transform: translate(-2px,-2px); box-shadow: var(--s2); }
+    .sidebar nav a.active { background: var(--border); color: #fff; }
+    .sidebar .logout-wrap { margin-top: auto; padding-top: 20px; }
     .sidebar .logout-btn {
-      width: 100%;
-      text-align: center;
-      background: var(--bad-bg);
-      color: var(--bad);
-      font-size: 14px;
-      padding: 10px;
+      width: 100%; padding: 10px; font-family: inherit;
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      border: 3px solid var(--border); background: var(--bad-bg);
+      color: #fff; cursor: pointer; box-shadow: var(--s1); transition: all 0.1s;
     }
-
-    .main-content {
-      flex-grow: 1;
-      padding: 24px;
-      max-width: calc(100vw - 250px);
-      overflow-x: hidden;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+    .sidebar .logout-btn:hover { transform: translate(-2px,-2px); box-shadow: var(--s2); }
+    .main { flex: 1; padding: 28px; min-width: 0; }
 
     /* Topbar */
     .topbar {
@@ -219,7 +171,7 @@
     /* Tables */
     .table-container {
       width: 100%;
-      overflow-x: auto;
+      overflow: hidden;
       border: 3px solid var(--border);
       background: var(--panel);
       box-shadow: var(--shadow-md);
@@ -227,6 +179,7 @@
     }
     table {
       width: 100%;
+      table-layout: fixed;
       border-collapse: separate;
       border-spacing: 0;
       font-size: 14px;
@@ -238,9 +191,12 @@
       font-weight: 700;
       padding: 14px 16px;
       text-transform: uppercase;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
       border-bottom: 3px solid var(--border);
       border-right: 2px solid var(--border);
+      vertical-align: top;
     }
     thead th:last-child {
       border-right: none;
@@ -249,9 +205,11 @@
       border-bottom: 2px solid var(--border);
       border-right: 2px solid var(--border);
       padding: 14px 16px;
-      white-space: nowrap;
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: anywhere;
       font-weight: 600;
-      vertical-align: middle;
+      vertical-align: top;
     }
     tbody tr td:last-child { border-right: none; }
     tbody tr:last-child td { border-bottom: none; }
@@ -424,30 +382,31 @@
     form button[type="submit"] { width: 100%; padding: 12px; font-size: 16px; background: var(--primary); color: #fff;}
     
     @media (max-width: 768px) {
-      .layout-wrapper { flex-direction: column; }
+      .layout { flex-direction: column; }
       .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 3px solid var(--border); }
-      .main-content { max-width: 100%; padding: 16px; }
+      .main { padding: 16px; }
       .detail-header { flex-direction: column; align-items: flex-start; }
     }
   </style>
 </head>
 <body>
-  <div class="layout-wrapper">
-        <aside class="sidebar">
-      <h2>LoveMatchID</h2>
+  <div class="layout">
+    <aside class="sidebar">
+      <span class="logo">LoveMatchID</span>
       <nav>
-        <a href="/">Dashboard</a>
+        <a href="/" class="active">Dashboard</a>
         <a href="/users">Daftar User</a>
         <a href="/reports">Daftar Report</a>
         <a href="/matches">Riwayat Match</a>
         <a href="/chats">Active Chats</a>
-        <form class="logout-form" method="post" action="/logout">
+      </nav>
+      <div class="logout-wrap">
+        <form method="post" action="/logout">
           <button type="submit" class="logout-btn">Logout</button>
         </form>
-      </nav>
+      </div>
     </aside>
-    <main class="main-content">
-  <div class="container">
+    <main class="main">
     <div class="topbar">
       <div>
         <h1>LoveMatchID • Admin Dashboard</h1>
@@ -492,8 +451,7 @@
       <div style="margin-top:8px; margin-bottom:12px;"><a class="btn-link" href="/matches">Monitor Match & Riwayat</a></div>
       
       </div>
-  </div>
-  </div>
+  
 
   
     </main>

@@ -5,7 +5,11 @@ from .config import REPORT_REASON_OPTIONS
 
 def main_menu_keyboard():
     return ReplyKeyboardMarkup(
-        [["💬 Mulai Obrolan", "👀 Profile Saya"], ["✏️ Edit Profile", "🚪 Keluar"]],
+        [
+            ["👁️ Lihat Profil", "💬 Mulai Obrolan"],
+            ["👀 Profile Saya", "✏️ Edit Profile"],
+            ["🚪 Keluar"],
+        ],
         resize_keyboard=True,
         input_field_placeholder="Pilih menu yuk~",
     )
@@ -29,6 +33,17 @@ def active_chat_keyboard():
 def next_profile_keyboard():
     return ReplyKeyboardMarkup(
         [["❤️ Love", "👎 Dislike"], ["⚠️ Report", "🏠 Menu Utama"]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
+
+
+def discover_profile_keyboard():
+    return ReplyKeyboardMarkup(
+        [
+            ["👎", "💌", "❤️"],
+            ["🏠 Menu Utama"],
+        ],
         resize_keyboard=True,
         one_time_keyboard=True,
     )

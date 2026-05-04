@@ -7,7 +7,9 @@ from ..services.user_service import user_service
 from ..utils import ensure_utc, is_admin, now_utc
 
 
-def should_send_error_notice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+def should_send_error_notice(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> bool:
     if ERROR_NOTICE_COOLDOWN_SECONDS <= 0:
         return True
 
@@ -18,10 +20,16 @@ def should_send_error_notice(update: Update, context: ContextTypes.DEFAULT_TYPE)
     else:
         return True
 
-    error_notice_cache = context.application.bot_data.setdefault("error_notice_cache", {})
+    error_notice_cache = context.application.bot_data.setdefault(
+        "error_notice_cache", {}
+    )
     current_time = now_utc()
     last_notice_time = ensure_utc(error_notice_cache.get(cache_key))
-    if last_notice_time and (current_time - last_notice_time).total_seconds() < ERROR_NOTICE_COOLDOWN_SECONDS:
+    if (
+        last_notice_time
+        and (current_time - last_notice_time).total_seconds()
+        < ERROR_NOTICE_COOLDOWN_SECONDS
+    ):
         return False
 
     error_notice_cache[cache_key] = current_time

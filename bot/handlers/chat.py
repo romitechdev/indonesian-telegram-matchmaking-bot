@@ -2,7 +2,12 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from ..config import logger
-from ..keyboards import active_chat_keyboard, main_menu_keyboard, waiting_chat_keyboard, report_reason_keyboard
+from ..keyboards import (
+    active_chat_keyboard,
+    main_menu_keyboard,
+    waiting_chat_keyboard,
+    report_reason_keyboard,
+)
 from ..services.chat_service import chat_service
 from ..services.user_service import user_service
 from ..utils import (
@@ -85,9 +90,16 @@ async def _send_profile_preview(
             if partner_id:
                 try:
                     photos = await telegram_call_with_retry(
-                        lambda: context.bot.get_user_profile_photos(user_id=partner_id, limit=1)
+                        lambda: context.bot.get_user_profile_photos(
+                            user_id=partner_id, limit=1
+                        )
                     )
-                    if photos and photos.total_count > 0 and photos.photos and photos.photos[0]:
+                    if (
+                        photos
+                        and photos.total_count > 0
+                        and photos.photos
+                        and photos.photos[0]
+                    ):
                         refreshed_photo_id = photos.photos[0][-1].file_id
                         user_service.update_profile_fields(
                             partner_id,
@@ -229,6 +241,16 @@ async def stop_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
+    # Show pending notifications after chat ends
+    pending_notifications = user_service.consume_pending_notifications(user.id)
+    for notification in pending_notifications:
+        notice_text = notification.get("text")
+        if notice_text:
+            try:
+                await update.message.reply_text(notice_text)
+            except Exception:
+                pass
+
 
 async def next_chat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -257,10 +279,16 @@ async def relay_chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     text = update.message.text
     photo = None
+    image_document = None
     caption = None
 
     if update.message.photo:
         photo = update.message.photo[-1]
+        caption = update.message.caption
+    elif update.message.document and (
+        update.message.document.mime_type or ""
+    ).startswith("image/"):
+        image_document = update.message.document
         caption = update.message.caption
     elif not text:
         return
@@ -276,9 +304,21 @@ async def relay_chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
         "⏭️ Next",
         "⛔ Stop",
         "❌ Batal Cari",
+        "👁️ Lihat Profil",
+        "❤️",
+        "💌",
+        "👎",
     }
     if check_text.strip() in blocked_commands:
         return
+
+    # If user is composing a discover message, intercept the text
+    if context.user_data.get("discover_awaiting_message") and text:
+        from .discover import discover_send_message_submit
+
+        handled = await discover_send_message_submit(update, context)
+        if handled:
+            return
 
     partner_id = chat_service.get_partner_id(user.id)
     if not partner_id:
@@ -291,28 +331,49 @@ async def relay_chat_message(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     try:
         if photo:
-            await context.bot.send_photo(
-                chat_id=partner_id,
-                photo=photo.file_id,
-                caption=caption,
-                reply_markup=active_chat_keyboard(),
+            await telegram_call_with_retry(
+                lambda: context.bot.send_photo(
+                    chat_id=partner_id,
+                    photo=photo.file_id,
+                    caption=caption,
+                    reply_markup=active_chat_keyboard(),
+                )
             )
             record_text = caption or ""
             photo_file_id = photo.file_id
+        elif image_document:
+            await telegram_call_with_retry(
+                lambda: context.bot.send_document(
+                    chat_id=partner_id,
+                    document=image_document.file_id,
+                    caption=caption,
+                    reply_markup=active_chat_keyboard(),
+                )
+            )
+            record_text = caption or ""
+            photo_file_id = image_document.file_id
         else:
-            await context.bot.send_message(
-                chat_id=partner_id,
-                text=text,
-                reply_markup=active_chat_keyboard(),
+            await telegram_call_with_retry(
+                lambda: context.bot.send_message(
+                    chat_id=partner_id,
+                    text=text,
+                    reply_markup=active_chat_keyboard(),
+                )
             )
             record_text = text
             photo_file_id = None
 
         # store transcript
         try:
-            chat_service.record_message(update.effective_user.id, partner_id, record_text, photo_file_id)
+            chat_service.record_message(
+                update.effective_user.id, partner_id, record_text, photo_file_id
+            )
         except Exception:
-            logger.exception("Failed to record chat message for %s -> %s", update.effective_user.id, partner_id)
+            logger.exception(
+                "Failed to record chat message for %s -> %s",
+                update.effective_user.id,
+                partner_id,
+            )
     except Exception:
         chat_service.stop_chat(user.id)
         await update.message.reply_text(

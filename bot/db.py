@@ -2,7 +2,6 @@ from pymongo import MongoClient
 
 from .config import DB_NAME, MONGODB_URI
 
-
 client = MongoClient(MONGODB_URI)
 db = client[DB_NAME]
 
@@ -13,3 +12,4 @@ reports_collection = db.reports
 likes_collection = db.likes
 matches_collection = db.matches
 chat_events_collection = db.chat_events
+discover_actions_collection = db.discover_actions

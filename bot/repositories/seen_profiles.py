@@ -21,7 +21,9 @@ class SeenProfileRepository:
             )
         )
 
-    def insert_seen(self, viewer_id: int, profile_id, viewed_at, viewed_day: str | None = None):
+    def insert_seen(
+        self, viewer_id: int, profile_id, viewed_at, viewed_day: str | None = None
+    ):
         document = {
             "viewer_id": viewer_id,
             "profile_id": profile_id,
@@ -31,7 +33,9 @@ class SeenProfileRepository:
             document["viewed_day"] = viewed_day
         return self.collection.insert_one(document)
 
-    def count_viewed_for_day(self, viewer_id: int, day_key: str, day_start, day_end) -> int:
+    def count_viewed_for_day(
+        self, viewer_id: int, day_key: str, day_start, day_end
+    ) -> int:
         return self.collection.count_documents(
             {
                 "viewer_id": viewer_id,

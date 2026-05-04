@@ -110,20 +110,28 @@ async def edit_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     choice = update.message.text.lower()
 
     if "nama" in choice:
-        await update.message.reply_text("Tulis nama barunya ya~", reply_markup=ReplyKeyboardRemove())
+        await update.message.reply_text(
+            "Tulis nama barunya ya~", reply_markup=ReplyKeyboardRemove()
+        )
         return EDIT_NAME
     if "umur" in choice:
-        age_buttons = [[str(age) for age in range(14, 31)[i : i + 5]] for i in range(0, 17, 5)]
+        age_buttons = [
+            [str(age) for age in range(14, 31)[i : i + 5]] for i in range(0, 17, 5)
+        ]
         await update.message.reply_text(
             "Pilih umur barunya nih~ 🎂",
-            reply_markup=ReplyKeyboardMarkup(age_buttons, one_time_keyboard=True, resize_keyboard=True),
+            reply_markup=ReplyKeyboardMarkup(
+                age_buttons, one_time_keyboard=True, resize_keyboard=True
+            ),
         )
         return EDIT_AGE
     if "gender" in choice:
         gender_buttons = [["♂️ Cowok", "♀️ Cewek"]]
         await update.message.reply_text(
             "Pilih gender kamu ya~ 💁‍♂️💁‍♀️",
-            reply_markup=ReplyKeyboardMarkup(gender_buttons, one_time_keyboard=True, resize_keyboard=True),
+            reply_markup=ReplyKeyboardMarkup(
+                gender_buttons, one_time_keyboard=True, resize_keyboard=True
+            ),
         )
         return EDIT_GENDER
     if "bio" in choice:
@@ -147,10 +155,14 @@ async def edit_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return EDIT_PHOTO
     if "menu" in choice:
-        await update.message.reply_text("Kembali ke menu utama~", reply_markup=main_menu_keyboard())
+        await update.message.reply_text(
+            "Kembali ke menu utama~", reply_markup=main_menu_keyboard()
+        )
         return ConversationHandler.END
 
-    await update.message.reply_text("Waduh pilih yang bener dong~", reply_markup=main_menu_keyboard())
+    await update.message.reply_text(
+        "Waduh pilih yang bener dong~", reply_markup=main_menu_keyboard()
+    )
     return EDIT_CHOICE
 
 

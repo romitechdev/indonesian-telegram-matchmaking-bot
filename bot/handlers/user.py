@@ -4,17 +4,11 @@ from telegram.ext import ContextTypes, ConversationHandler
 from ..config import (
     ADMIN_ACTION,
     AGE,
-    COMMUNICATION_STYLE_OPTIONS,
-    COMPATIBILITY_VALUE_OPTIONS,
     DESCRIPTION,
     GENDER,
     LOCATION,
     NAME,
     PHOTO,
-    QUIZ_COMM_STYLE,
-    QUIZ_RELATIONSHIP_GOAL,
-    QUIZ_VALUE,
-    RELATIONSHIP_GOAL_OPTIONS,
 )
 from ..keyboards import admin_menu_keyboard, main_menu_keyboard
 from ..services.user_service import user_service
@@ -24,11 +18,20 @@ from ..utils import (
     is_admin,
     is_temporarily_banned,
 )
+from .discover import start_discover
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.effective_user
     user_service.sync_identity(user)
+
+    # parse optional start param from deep-link (/start <param>)
+    start_param = None
+    if update.message and update.message.text:
+        parts = update.message.text.strip().split()
+        if len(parts) > 1:
+            start_param = parts[1]
+            context.user_data["start_param"] = start_param
 
     if is_admin(user):
         await update.message.reply_text(
@@ -62,6 +65,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             if notice_text:
                 await update.message.reply_text(notice_text)
 
+        # If start param requested a specific flow, route to it (e.g., s_global)
+        sp = context.user_data.pop("start_param", None)
+        if sp:
+            try:
+                if sp.startswith("s_") or "global" in sp or "newfriends" in sp:
+                    await start_discover(update, context)
+                    return ConversationHandler.END
+            except Exception:
+                pass
+
         return ConversationHandler.END
 
     await update.message.reply_text(
@@ -81,11 +94,15 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     context.user_data["name"] = name
 
-    age_buttons = [[str(age) for age in range(14, 31)[i : i + 5]] for i in range(0, 17, 5)]
+    age_buttons = [
+        [str(age) for age in range(14, 31)[i : i + 5]] for i in range(0, 17, 5)
+    ]
 
     await update.message.reply_text(
         f"<b>{escape_html(name)}</b>, umurnya berapa nih? 🎂",
-        reply_markup=ReplyKeyboardMarkup(age_buttons, one_time_keyboard=True, resize_keyboard=True),
+        reply_markup=ReplyKeyboardMarkup(
+            age_buttons, one_time_keyboard=True, resize_keyboard=True
+        ),
         parse_mode="HTML",
     )
     return AGE
@@ -105,7 +122,9 @@ async def get_age(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     gender_buttons = [["♂️ Cowok", "♀️ Cewek"]]
     await update.message.reply_text(
         "Oke sip! Kamu cowok atau cewek nih? 💁‍♂️💁‍♀️",
-        reply_markup=ReplyKeyboardMarkup(gender_buttons, one_time_keyboard=True, resize_keyboard=True),
+        reply_markup=ReplyKeyboardMarkup(
+            gender_buttons, one_time_keyboard=True, resize_keyboard=True
+        ),
     )
     return GENDER
 
@@ -139,74 +158,10 @@ async def get_description(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     context.user_data["description"] = description
 
-    quiz_keyboard = ReplyKeyboardMarkup(
-        [[option] for option in COMPATIBILITY_VALUE_OPTIONS],
-        one_time_keyboard=True,
-        resize_keyboard=True,
-    )
-
-    await update.message.reply_text(
-        "Pertanyaan 1/3 🔎\n"
-        "Nilai yang paling kamu cari di hubungan itu apa?",
-        reply_markup=quiz_keyboard,
-    )
-    return QUIZ_VALUE
-
-
-async def get_quiz_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    answer = update.message.text.strip()
-    if answer not in COMPATIBILITY_VALUE_OPTIONS:
-        await update.message.reply_text("Pilih salah satu opsi yang ada ya~")
-        return QUIZ_VALUE
-
-    context.user_data["compatibility_value"] = answer
-
-    quiz_keyboard = ReplyKeyboardMarkup(
-        [[option] for option in COMMUNICATION_STYLE_OPTIONS],
-        one_time_keyboard=True,
-        resize_keyboard=True,
-    )
-
-    await update.message.reply_text(
-        "Pertanyaan 2/3 🔎\n"
-        "Kamu lebih nyaman gaya komunikasi yang mana?",
-        reply_markup=quiz_keyboard,
-    )
-    return QUIZ_COMM_STYLE
-
-
-async def get_quiz_communication_style(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    answer = update.message.text.strip()
-    if answer not in COMMUNICATION_STYLE_OPTIONS:
-        await update.message.reply_text("Pilih salah satu opsi yang ada ya~")
-        return QUIZ_COMM_STYLE
-
-    context.user_data["compatibility_communication_style"] = answer
-
-    quiz_keyboard = ReplyKeyboardMarkup(
-        [[option] for option in RELATIONSHIP_GOAL_OPTIONS],
-        one_time_keyboard=True,
-        resize_keyboard=True,
-    )
-
-    await update.message.reply_text(
-        "Pertanyaan 3/3 🔎\n"
-        "Sekarang kamu lagi cari apa di LoveMatchID?",
-        reply_markup=quiz_keyboard,
-    )
-    return QUIZ_RELATIONSHIP_GOAL
-
-
-async def get_quiz_relationship_goal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    answer = update.message.text.strip()
-    if answer not in RELATIONSHIP_GOAL_OPTIONS:
-        await update.message.reply_text("Pilih salah satu opsi yang ada ya~")
-        return QUIZ_RELATIONSHIP_GOAL
-
-    context.user_data["compatibility_relationship_goal"] = answer
-
     location_button = KeyboardButton("📍 Share Lokasi", request_location=True)
-    reply_markup = ReplyKeyboardMarkup([[location_button]], one_time_keyboard=True, resize_keyboard=True)
+    reply_markup = ReplyKeyboardMarkup(
+        [[location_button]], one_time_keyboard=True, resize_keyboard=True
+    )
 
     await update.message.reply_text(
         "Tinggal dikit lagi nih! Kita butuh lokasi kamu biar bisa cari orang terdekat~ 🌍\n\n"
@@ -242,4 +197,14 @@ async def get_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         reply_markup=main_menu_keyboard(),
         parse_mode="HTML",
     )
+    # If user arrived via a deep-link start param, trigger appropriate flow
+    sp = context.user_data.pop("start_param", None)
+    if sp:
+        try:
+            if sp.startswith("s_") or "global" in sp or "newfriends" in sp:
+                await start_discover(update, context)
+                return ConversationHandler.END
+        except Exception:
+            pass
+
     return ConversationHandler.END

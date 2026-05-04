@@ -3,7 +3,6 @@ import os
 
 from dotenv import load_dotenv
 
-
 load_dotenv()
 
 logging.basicConfig(
@@ -55,6 +54,7 @@ def _env_float(name: str, default: float) -> float:
         logger.warning("Invalid %s=%r, using default %s", name, raw_value, default)
         return default
 
+
 COMPATIBILITY_VALUE_OPTIONS = [
     "🌱 Tumbuh bareng",
     "🎉 Seru-seruan",
@@ -79,6 +79,7 @@ MATCH_RESET_TIMEZONE = os.getenv("MATCH_RESET_TIMEZONE", "Asia/Jakarta")
 ERROR_NOTICE_COOLDOWN_SECONDS = max(_env_int("ERROR_NOTICE_COOLDOWN_SECONDS", 60), 0)
 AUTO_REPORT_BAN_THRESHOLD = max(_env_int("AUTO_REPORT_BAN_THRESHOLD", 3), 1)
 AUTO_REPORT_BAN_DAYS = max(_env_int("AUTO_REPORT_BAN_DAYS", 3650), 1)
+DISCOVER_MESSAGE_MAX_LENGTH = max(_env_int("DISCOVER_MESSAGE_MAX_LENGTH", 200), 1)
 
 TELEGRAM_CONNECT_TIMEOUT = max(_env_float("TELEGRAM_CONNECT_TIMEOUT", 10.0), 1.0)
 TELEGRAM_READ_TIMEOUT = max(_env_float("TELEGRAM_READ_TIMEOUT", 20.0), 1.0)

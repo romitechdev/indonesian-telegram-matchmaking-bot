@@ -4,6 +4,7 @@ from datetime import timedelta
 from ..config import DAILY_PROFILE_VIEW_LIMIT
 from ..repositories.blocked_profiles import blocked_profile_repository
 from ..repositories.chat_events import chat_event_repository
+from ..repositories.discover_actions import discover_action_repository
 from ..repositories.likes import like_repository
 from ..repositories.matches import match_repository
 from ..repositories.reports import report_repository
@@ -36,6 +37,7 @@ class MatchingService:
         likes_repo,
         matches_repo,
         chat_events_repo,
+        discover_actions_repo,
         daily_view_limit: int = DAILY_PROFILE_VIEW_LIMIT,
     ):
         self.users_repo = users_repo
@@ -45,6 +47,7 @@ class MatchingService:
         self.likes_repo = likes_repo
         self.matches_repo = matches_repo
         self.chat_events_repo = chat_events_repo
+        self.discover_actions_repo = discover_actions_repo
         self.daily_view_limit = max(daily_view_limit, 1)
 
     @staticmethod
@@ -64,7 +67,9 @@ class MatchingService:
 
     def get_seen_profile_ids(self, viewer_id: int):
         day_key, day_start, day_end = self._current_day_context()
-        seen_profiles = self.seen_repo.list_viewed_for_day(viewer_id, day_key, day_start, day_end)
+        seen_profiles = self.seen_repo.list_viewed_for_day(
+            viewer_id, day_key, day_start, day_end
+        )
 
         seen_ids = []
         for profile in seen_profiles:
@@ -75,7 +80,9 @@ class MatchingService:
 
     def get_daily_view_count(self, viewer_id: int) -> int:
         day_key, day_start, day_end = self._current_day_context()
-        return self.seen_repo.count_viewed_for_day(viewer_id, day_key, day_start, day_end)
+        return self.seen_repo.count_viewed_for_day(
+            viewer_id, day_key, day_start, day_end
+        )
 
     def get_daily_view_limit(self) -> int:
         return self.daily_view_limit
@@ -96,8 +103,6 @@ class MatchingService:
 
     def find_matches_for_user(self, current_user: dict):
         target_gender = get_target_gender(current_user.get("gender"))
-        if not target_gender:
-            return []
 
         source_lat = current_user.get("latitude")
         source_lon = current_user.get("longitude")
@@ -105,16 +110,22 @@ class MatchingService:
             return []
 
         seen_profile_ids = self.get_seen_profile_ids(current_user["telegram_id"])
-        excluded_telegram_ids = self.get_excluded_telegram_ids(current_user["telegram_id"])
+        excluded_telegram_ids = self.get_excluded_telegram_ids(
+            current_user["telegram_id"]
+        )
 
         current_time = now_utc()
-        base_query = {
-            "_id": {"$nin": seen_profile_ids},
-            "telegram_id": {"$nin": excluded_telegram_ids},
-            "is_active": True,
-            "gender": target_gender,
-            **not_banned_query(current_time),
-        }
+
+        def _base_query(gender_filter=None):
+            q = {
+                "_id": {"$nin": seen_profile_ids},
+                "telegram_id": {"$nin": excluded_telegram_ids},
+                "is_active": True,
+                **not_banned_query(current_time),
+            }
+            if gender_filter:
+                q["gender"] = gender_filter
+            return q
 
         def sort_by_distance(candidates):
             valid_matches = []
@@ -142,16 +153,34 @@ class MatchingService:
             )
             return valid_matches
 
-        query_stage1 = {
-            **base_query,
-            "age_group": current_user["age_group"],
-        }
-        stage1_matches = sort_by_distance(list(self.users_repo.find_many(query_stage1)))
+        # Stage 1: opposite gender, same age group
+        if target_gender:
+            base = _base_query(target_gender)
+            stage1 = sort_by_distance(
+                list(
+                    self.users_repo.find_many(
+                        {**base, "age_group": current_user.get("age_group")}
+                    )
+                )
+            )
+            if stage1:
+                return stage1
 
-        if stage1_matches:
-            return stage1_matches
+            # Stage 2: opposite gender, any age
+            stage2 = sort_by_distance(list(self.users_repo.find_many(base)))
+            if stage2:
+                return stage2
 
-        return sort_by_distance(list(self.users_repo.find_many(base_query)))
+        # Stage 3: same gender fallback (only when opposite gender is exhausted)
+        own_gender = current_user.get("gender")
+        if own_gender:
+            same_base = _base_query(own_gender)
+            stage3 = sort_by_distance(list(self.users_repo.find_many(same_base)))
+            if stage3:
+                return stage3
+
+        # Stage 4: any gender (no gender set)
+        return sort_by_distance(list(self.users_repo.find_many(_base_query())))
 
     def record_seen_profile(self, viewer_id: int, profile_id):
         current_time = now_utc()
@@ -164,14 +193,18 @@ class MatchingService:
 
     def like_profile(self, liker_profile: dict, liked_profile: dict):
         from ..config import logger
-        
+
         liker_telegram_id = liker_profile.get("telegram_id")
         liked_telegram_id = liked_profile.get("telegram_id")
-        
-        logger.info(f"like_profile called: liker={liker_telegram_id}, liked={liked_telegram_id}")
-        
+
+        logger.info(
+            f"like_profile called: liker={liker_telegram_id}, liked={liked_telegram_id}"
+        )
+
         if liker_telegram_id is None or liked_telegram_id is None:
-            logger.warning(f"Invalid targets - liker: {liker_telegram_id}, liked: {liked_telegram_id}")
+            logger.warning(
+                f"Invalid targets - liker: {liker_telegram_id}, liked: {liked_telegram_id}"
+            )
             return {
                 "status": "invalid_target",
                 "is_match": False,
@@ -192,9 +225,9 @@ class MatchingService:
             liked_telegram_id=liker_telegram_id,
         )
         logger.info(f"Mutual like check: is_mutual={is_mutual}")
-        
+
         if not is_mutual:
-            logger.info(f"One-sided like - returning 'liked' status")
+            logger.info("One-sided like - returning 'liked' status")
             return {
                 "status": "liked",
                 "is_match": False,
@@ -208,15 +241,30 @@ class MatchingService:
             second_name=liked_profile.get("name", "Tanpa Nama"),
             created_at=current_time,
         )
-        logger.info(f"Mutual match created - returning 'matched' status")
+
+        # Get the match document to retrieve its ID
+        match_doc = self.matches_repo.collection.find_one(
+            {
+                "first_telegram_id": liker_telegram_id,
+                "second_telegram_id": liked_telegram_id,
+            }
+        )
+        match_id = str(match_doc["_id"]) if match_doc else ""
+
+        logger.info(
+            f"Mutual match created - returning 'matched' status with match_id={match_id}"
+        )
         return {
             "status": "matched",
             "is_match": True,
             "is_new_match": match_result.upserted_id is not None,
             "target_telegram_id": liked_telegram_id,
+            "match_id": match_id,
         }
 
-    def mark_chat_started(self, first_telegram_id: int, second_telegram_id: int, started_by: int):
+    def mark_chat_started(
+        self, first_telegram_id: int, second_telegram_id: int, started_by: int
+    ):
         return self.chat_events_repo.upsert_chat_started(
             first_telegram_id=first_telegram_id,
             second_telegram_id=second_telegram_id,
@@ -241,14 +289,13 @@ class MatchingService:
             first_line = "Lagi semangat di hal apa minggu ini? Boleh saling update biar nyambung obrolannya."
 
         target_name = target_user.get("name", "dia")
-        second_line = (
-            f"Ajak {target_name} main Q&A cepat: 3 hal favorit saat weekend versi kalian masing-masing."
-        )
+        second_line = f"Ajak {target_name} main Q&A cepat: 3 hal favorit saat weekend versi kalian masing-masing."
 
-        goal = current_user.get("compatibility_relationship_goal") or "🌈 Lihat dulu cocoknya"
-        third_line = (
-            f"Kamu pilih '{goal}'. Menurutmu first date ideal itu ngobrol santai di mana?"
+        goal = (
+            current_user.get("compatibility_relationship_goal")
+            or "🌈 Lihat dulu cocoknya"
         )
+        third_line = f"Kamu pilih '{goal}'. Menurutmu first date ideal itu ngobrol santai di mana?"
 
         return [first_line, second_line, third_line]
 
@@ -262,7 +309,9 @@ class MatchingService:
                 score += 1
         return score
 
-    def create_block(self, blocker_telegram_id: int, match: dict, reason: str = "Manual block"):
+    def create_block(
+        self, blocker_telegram_id: int, match: dict, reason: str = "Manual block"
+    ):
         return self.blocked_repo.upsert_block(
             blocker_telegram_id=blocker_telegram_id,
             blocked_telegram_id=match.get("telegram_id"),
@@ -272,7 +321,9 @@ class MatchingService:
             created_at=now_utc(),
         )
 
-    def create_report_and_block(self, reporter_telegram_id: int, pending_report: dict, reason: str):
+    def create_report_and_block(
+        self, reporter_telegram_id: int, pending_report: dict, reason: str
+    ):
         self.reports_repo.insert_one(
             {
                 "reporter_telegram_id": reporter_telegram_id,
@@ -297,14 +348,17 @@ class MatchingService:
         try:
             reported_id = pending_report.get("reported_telegram_id")
             if reported_id is not None:
-                total_reports = self.reports_repo.count_by_reported_telegram_id(reported_id)
+                total_reports = self.reports_repo.count_by_reported_telegram_id(
+                    reported_id
+                )
                 if total_reports >= AUTO_REPORT_BAN_THRESHOLD:
                     review_time = now_utc()
                     # apply temporary ban (auto ban)
                     self.users_repo.update_by_telegram_id(
                         reported_id,
                         {
-                            "ban_until": review_time + timedelta(days=AUTO_REPORT_BAN_DAYS),
+                            "ban_until": review_time
+                            + timedelta(days=AUTO_REPORT_BAN_DAYS),
                             "ban_reason": f"Auto-ban: {total_reports} reports",
                             "banned_at": review_time,
                             "banned_by": "auto_report_threshold",
@@ -316,6 +370,134 @@ class MatchingService:
         except Exception:
             pass
 
+    # ── Discover feature methods ──────────────────────────────────────
+
+    def discover_love(self, sender_profile: dict, target_profile: dict):
+        """Process a love action from the discover feature.
+
+        Returns dict with action_id for use in inline keyboard callbacks.
+        """
+        from ..config import logger
+
+        sender_id = sender_profile.get("telegram_id")
+        target_id = target_profile.get("telegram_id")
+
+        if sender_id is None or target_id is None:
+            return {"status": "invalid_target"}
+
+        current_time = now_utc()
+        result = self.discover_actions_repo.insert_action(
+            sender_telegram_id=sender_id,
+            target_telegram_id=target_id,
+            action_type="love",
+            message_text=None,
+            created_at=current_time,
+        )
+        logger.info(
+            f"Discover love: {sender_id} -> {target_id}, action_id={result.inserted_id}"
+        )
+        return {
+            "status": "love_sent",
+            "action_id": str(result.inserted_id),
+            "target_telegram_id": target_id,
+        }
+
+    def discover_send_message(
+        self, sender_profile: dict, target_profile: dict, message_text: str
+    ):
+        """Process a send-message action from the discover feature."""
+        from ..config import logger
+
+        sender_id = sender_profile.get("telegram_id")
+        target_id = target_profile.get("telegram_id")
+
+        if sender_id is None or target_id is None:
+            return {"status": "invalid_target"}
+
+        current_time = now_utc()
+        result = self.discover_actions_repo.insert_action(
+            sender_telegram_id=sender_id,
+            target_telegram_id=target_id,
+            action_type="message",
+            message_text=message_text,
+            created_at=current_time,
+        )
+        logger.info(
+            f"Discover message: {sender_id} -> {target_id}, action_id={result.inserted_id}"
+        )
+        return {
+            "status": "message_sent",
+            "action_id": str(result.inserted_id),
+            "target_telegram_id": target_id,
+        }
+
+    def respond_to_discover_action(
+        self, action_id: str, response: str, responder_telegram_id: int
+    ):
+        """Process the target's response to a discover action.
+
+        response: 'love_back' or 'dislike' or 'ignore'
+        Returns dict with match info if mutual.
+        """
+        from ..config import logger
+
+        action = self.discover_actions_repo.find_action_by_id(action_id)
+        if not action:
+            return {"status": "not_found"}
+
+        if action.get("response") is not None:
+            return {"status": "already_responded"}
+
+        if action.get("target_telegram_id") != responder_telegram_id:
+            return {"status": "not_authorized"}
+
+        current_time = now_utc()
+        self.discover_actions_repo.update_response(action_id, response, current_time)
+
+        sender_telegram_id = action.get("sender_telegram_id")
+
+        if response == "love_back":
+            # Create mutual match
+            sender_profile = self.users_repo.find_by_telegram_id(sender_telegram_id)
+            responder_profile = self.users_repo.find_by_telegram_id(
+                responder_telegram_id
+            )
+
+            sender_name = (
+                sender_profile.get("name", "Tanpa Nama")
+                if sender_profile
+                else "Tanpa Nama"
+            )
+            responder_name = (
+                responder_profile.get("name", "Tanpa Nama")
+                if responder_profile
+                else "Tanpa Nama"
+            )
+
+            match_result = self.matches_repo.upsert_match(
+                first_telegram_id=sender_telegram_id,
+                second_telegram_id=responder_telegram_id,
+                first_name=sender_name,
+                second_name=responder_name,
+                created_at=current_time,
+            )
+
+            logger.info(
+                f"Discover match: {sender_telegram_id} <-> {responder_telegram_id}, "
+                f"new={match_result.upserted_id is not None}"
+            )
+
+            return {
+                "status": "matched",
+                "is_new_match": match_result.upserted_id is not None,
+                "sender_telegram_id": sender_telegram_id,
+                "sender_profile": sender_profile,
+                "responder_profile": responder_profile,
+            }
+
+        logger.info(f"Discover response: action={action_id}, response={response}")
+        return {"status": response, "sender_telegram_id": sender_telegram_id}
+
 
 matching_service = MatchingService(
     users_repo=user_repository,
@@ -325,4 +507,5 @@ matching_service = MatchingService(
     likes_repo=like_repository,
     matches_repo=match_repository,
     chat_events_repo=chat_event_repository,
+    discover_actions_repo=discover_action_repository,
 )

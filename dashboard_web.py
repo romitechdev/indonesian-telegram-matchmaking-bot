@@ -4,10 +4,18 @@ import urllib.request
 from functools import wraps
 from urllib.parse import urljoin, urlparse
 
-from flask import Flask, abort, redirect, render_template, request, session, url_for, Response
+from flask import (
+    Flask,
+    abort,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+    Response,
+)
 
 from bot.services.dashboard_service import dashboard_service
-
 
 app = Flask(__name__)
 
@@ -24,7 +32,9 @@ app.secret_key = DASHBOARD_SESSION_SECRET
 
 
 if not DASHBOARD_AUTH_USERNAME or not DASHBOARD_AUTH_PASSWORD:
-    raise RuntimeError("DASHBOARD_AUTH_USERNAME dan DASHBOARD_AUTH_PASSWORD wajib diisi di environment.")
+    raise RuntimeError(
+        "DASHBOARD_AUTH_USERNAME dan DASHBOARD_AUTH_PASSWORD wajib diisi di environment."
+    )
 
 
 def _is_logged_in() -> bool:
@@ -59,7 +69,11 @@ def dashboard_login():
     if _is_logged_in():
         return redirect(url_for("dashboard_home"))
 
-    next_value = request.args.get("next") or request.form.get("next") or url_for("dashboard_home")
+    next_value = (
+        request.args.get("next")
+        or request.form.get("next")
+        or url_for("dashboard_home")
+    )
     if not _is_safe_next_url(next_value):
         next_value = url_for("dashboard_home")
 
@@ -73,7 +87,9 @@ def dashboard_login():
             return redirect(next_value)
         error_message = "Username atau password salah."
 
-    return render_template("login.html", error_message=error_message, next_value=next_value)
+    return render_template(
+        "login.html", error_message=error_message, next_value=next_value
+    )
 
 
 @app.post("/logout")
@@ -92,7 +108,7 @@ def dashboard_home():
 
     summary = dashboard_service.get_summary()
     realtime_matches = dashboard_service.list_active_chats()
-    match_history_preview = dashboard_service.list_match_history(page=1, per_page=5)
+    match_history_preview = dashboard_service.list_match_history(page=page, per_page=5)
     message_text = request.args.get("msg", "")
     message_level = request.args.get("level", "ok")
 
@@ -105,6 +121,7 @@ def dashboard_home():
         message_level=message_level,
         dashboard_username=session.get("dashboard_username", "admin"),
     )
+
 
 @app.route("/users")
 @login_required
@@ -128,6 +145,7 @@ def users_list():
         message_level=message_level,
         dashboard_username=session.get("dashboard_username", "admin"),
     )
+
 
 @app.route("/reports")
 @login_required
@@ -204,10 +222,14 @@ def reset_daily_limit(user_id: str):
 @login_required
 def review_report(report_id: str):
     action = request.form.get("action", "")
-    result = dashboard_service.review_report(report_id, action, reviewed_by="dashboard_web")
+    result = dashboard_service.review_report(
+        report_id, action, reviewed_by="dashboard_web"
+    )
 
     if result["status"] == "reviewed":
-        action_label = "disetujui" if result["review_status"] == "approved" else "ditolak"
+        action_label = (
+            "disetujui" if result["review_status"] == "approved" else "ditolak"
+        )
         message = (
             f"Report {result['report_id']} {action_label}. "
             f"Approved report user: {result['approved_reports_count']}"
@@ -232,7 +254,7 @@ def review_report(report_id: str):
     redirect_params = {"msg": message, "level": level}
     if page:
         redirect_params["page"] = page
-    
+
     if next_page == "reports":
         return redirect(url_for("reports_list", **redirect_params))
     return redirect(url_for("dashboard_home", **redirect_params))
@@ -320,7 +342,9 @@ def chat_transcript_updates(pair_key: str):
     except ValueError:
         after_index = -1
 
-    payload = dashboard_service.get_chat_transcript_incremental(pair_key, after_index=after_index, limit=200)
+    payload = dashboard_service.get_chat_transcript_incremental(
+        pair_key, after_index=after_index, limit=200
+    )
     if payload is None:
         abort(404)
     return payload
@@ -332,7 +356,7 @@ def proxy_telegram_photo(file_id: str):
     token = os.getenv("TELEGRAM_TOKEN")
     if not token:
         abort(404)
-        
+
     get_file_url = f"https://api.telegram.org/bot{token}/getFile?file_id={file_id}"
     try:
         req = urllib.request.Request(get_file_url)
@@ -343,13 +367,18 @@ def proxy_telegram_photo(file_id: str):
             file_path = data["result"]["file_path"]
     except Exception:
         abort(404)
-        
+
     file_url = f"https://api.telegram.org/file/bot{token}/{file_path}"
     try:
         req = urllib.request.Request(file_url)
         with urllib.request.urlopen(req) as response:
             content = response.read()
-            return Response(content, mimetype="image/jpeg")
+            content_type = (
+                response.headers.get_content_type() if response.headers else None
+            )
+            return Response(
+                content, mimetype=content_type or "application/octet-stream"
+            )
     except Exception:
         abort(404)
 

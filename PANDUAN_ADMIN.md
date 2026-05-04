@@ -2,6 +2,12 @@
 
 Panduan ini untuk operasional admin bot di server lab (mode 24/7 via `systemd`).
 
+## Update Maintenance (Mei 2026)
+
+- File helper sekali pakai (`apply_css.py`, `apply_sidebar.py`, `update_layout.py`, `aktifkanlink.txt`) sudah dihapus dari root project.
+- Dokumentasi utama proyek sekarang ada di `README.md`.
+- Broadcast user mengambil semua `telegram_id` numerik valid (BSON `int` dan `long`) agar target tidak terpotong.
+
 ## 1) Cara Menjadi Admin
 
 Bot mengenali admin lewat **Telegram ID**.

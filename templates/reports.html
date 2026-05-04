@@ -3,558 +3,373 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LoveMatchID Admin Dashboard</title>
-        <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap');
-    
+  <title>Daftar Report • LoveMatchID</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
     :root {
       --bg: #f4f4f0;
       --panel: #ffffff;
       --border: #111111;
       --text: #111111;
       --muted: #555555;
-      --good: #000000;
       --good-bg: #4ade80;
-      --warn: #000000;
       --warn-bg: #fde047;
-      --bad: #ffffff;
       --bad-bg: #ef4444;
       --chip: #e0e0e0;
       --primary: #3b82f6;
-      --shadow-sm: 2px 2px 0px var(--border);
-      --shadow-md: 4px 4px 0px var(--border);
-      --shadow-lg: 6px 6px 0px var(--border);
+      --s1: 2px 2px 0 #111;
+      --s2: 4px 4px 0 #111;
+      --s3: 6px 6px 0 #111;
     }
-
-    * { box-sizing: border-box; }
-    
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
-      background: var(--bg);
-      background-image: radial-gradient(#cbd5e1 2px, transparent 2px);
-      background-size: 24px 24px;
-      color: var(--text);
       font-family: 'Space Grotesk', system-ui, sans-serif;
-      line-height: 1.5;
-    }
-
-    h1, h2, h3 {
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: -0.02em;
-    }
-
-    /* Layout wrapper for Sidebar */
-    .layout-wrapper {
-      display: flex;
+      background: var(--bg);
+      background-image: radial-gradient(#cbd5e1 1.5px, transparent 1.5px);
+      background-size: 22px 22px;
+      color: var(--text);
       min-height: 100vh;
     }
+    h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; }
 
+    /* ── Layout ─────────────────────── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ────────────────────── */
     .sidebar {
-      width: 250px;
+      width: 240px; flex-shrink: 0;
       background: var(--panel);
       border-right: 3px solid var(--border);
-      padding: 24px 20px;
-      display: flex;
-      flex-direction: column;
-      position: sticky;
-      top: 0;
-      height: 100vh;
+      padding: 24px 16px;
+      display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh;
       overflow-y: auto;
     }
-
-    .sidebar h2 {
-      margin: 0 0 24px 0;
-      font-size: 22px;
-      background: var(--warn-bg);
-      padding: 6px 12px;
-      border: 3px solid var(--border);
-      display: inline-block;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .sidebar nav {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      flex-grow: 1;
-    }
-
-    .sidebar nav a {
+    .sidebar .logo {
+      font-size: 18px; font-weight: 700; text-transform: uppercase;
+      background: var(--warn-bg); border: 3px solid var(--border);
+      padding: 6px 12px; box-shadow: var(--s1); margin-bottom: 28px;
       display: block;
-      padding: 10px 14px;
-      border: 3px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      text-decoration: none;
-      font-weight: 700;
-      text-transform: uppercase;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.1s ease-in-out;
     }
-
-    .sidebar nav a:hover {
-      background: var(--primary);
-      color: #fff;
-      transform: translate(-2px, -2px);
-      box-shadow: var(--shadow-md);
+    .sidebar nav { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .sidebar nav a {
+      display: block; padding: 10px 12px;
+      border: 2px solid var(--border); background: var(--bg);
+      color: var(--text); text-decoration: none;
+      font-weight: 700; font-size: 13px; text-transform: uppercase;
+      box-shadow: var(--s1); transition: all 0.1s;
     }
-
-    .sidebar nav a:active {
-      transform: translate(2px, 2px);
-      box-shadow: 0px 0px 0px var(--border);
-    }
-    
-    .sidebar .logout-form {
-      margin-top: auto;
-      padding-top: 24px;
-    }
+    .sidebar nav a:hover { background: var(--primary); color: #fff; transform: translate(-2px,-2px); box-shadow: var(--s2); }
+    .sidebar nav a.active { background: var(--border); color: #fff; }
+    .sidebar .logout-wrap { margin-top: auto; padding-top: 20px; }
     .sidebar .logout-btn {
-      width: 100%;
-      text-align: center;
-      background: var(--bad-bg);
-      color: var(--bad);
-      font-size: 14px;
-      padding: 10px;
+      width: 100%; padding: 10px; font-family: inherit;
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      border: 3px solid var(--border); background: var(--bad-bg);
+      color: #fff; cursor: pointer; box-shadow: var(--s1); transition: all 0.1s;
     }
+    .sidebar .logout-btn:hover { transform: translate(-2px,-2px); box-shadow: var(--s2); }
 
-    .main-content {
-      flex-grow: 1;
-      padding: 24px;
-      max-width: calc(100vw - 250px);
-      overflow-x: hidden;
-    }
+    /* ── Main ───────────────────────── */
+    .main { flex: 1; padding: 28px; min-width: 0; }
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    /* Topbar */
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-      flex-wrap: wrap;
-      margin-bottom: 32px;
-      background: var(--panel);
-      padding: 20px;
-      border: 3px solid var(--border);
-      box-shadow: var(--shadow-md);
-    }
-    .topbar h1 { margin: 0 0 4px; font-size: 28px; background: var(--warn-bg); display: inline-block; padding: 0 8px; border: 2px solid var(--border); }
-    .sub { color: var(--muted); margin: 0; font-weight: 600; font-size: 14px; }
-
-    /* Buttons */
-    button, .btn-link {
-      border: 3px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
-      cursor: pointer;
-      font-weight: 700;
-      font-family: inherit;
-      padding: 8px 16px;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.1s ease-in-out;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      text-transform: uppercase;
-      font-size: 13px;
-    }
-    button:hover, .btn-link:hover {
-      transform: translate(-2px, -2px);
-      box-shadow: var(--shadow-md);
-    }
-    button:active, .btn-link:active {
-      transform: translate(2px, 2px);
-      box-shadow: 0px 0px 0px var(--border);
-    }
-    
-    /* Cards */
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin-bottom: 32px;
-    }
-    .card {
-      border: 3px solid var(--border);
-      background: var(--panel);
-      padding: 20px;
-      box-shadow: var(--shadow-md);
-      transition: transform 0.2s;
-    }
-    .card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-lg);
-    }
-    .card .label { font-weight: 700; font-size: 14px; text-transform: uppercase; border-bottom: 2px solid var(--border); padding-bottom: 4px; margin-bottom: 8px; }
-    .card .value { font-size: 36px; font-weight: 700; }
-
-    /* Sections */
-    .section, .panel {
-      border: 3px solid var(--border);
-      background: var(--panel);
-      padding: 24px;
+    /* ── Page header ────────────────── */
+    .page-header {
+      background: var(--panel); border: 3px solid var(--border);
+      box-shadow: var(--s2); padding: 20px 24px;
       margin-bottom: 24px;
-      box-shadow: var(--shadow-md);
     }
-    .section h2 { margin: 0 0 16px; font-size: 22px; display: inline-block; border-bottom: 4px solid var(--primary); }
+    .page-header h1 {
+      font-size: 26px; text-transform: uppercase;
+      background: var(--warn-bg); display: inline-block;
+      padding: 2px 10px; border: 2px solid var(--border); margin-bottom: 4px;
+    }
+    .page-header .sub { color: var(--muted); font-size: 13px; font-weight: 600; }
 
-    /* Chips */
-    .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
-    .chip {
-      background: var(--chip);
-      border: 2px solid var(--border);
-      padding: 6px 12px;
-      font-size: 14px;
-      font-weight: 600;
-      box-shadow: 2px 2px 0px var(--border);
-      text-transform: uppercase;
-    }
-
-    /* Tables */
-    .table-container {
-      width: 100%;
-      overflow-x: auto;
-      border: 3px solid var(--border);
-      background: var(--panel);
-      box-shadow: var(--shadow-md);
-      margin-top: 16px;
-    }
-    table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      font-size: 14px;
-    }
-    thead th {
-      text-align: left;
-      background: var(--warn-bg);
-      color: var(--text);
-      font-weight: 700;
-      padding: 14px 16px;
-      text-transform: uppercase;
-      white-space: nowrap;
-      border-bottom: 3px solid var(--border);
-      border-right: 2px solid var(--border);
-    }
-    thead th:last-child {
-      border-right: none;
-    }
-    tbody td {
-      border-bottom: 2px solid var(--border);
-      border-right: 2px solid var(--border);
-      padding: 14px 16px;
-      white-space: nowrap;
-      font-weight: 600;
-      vertical-align: middle;
-    }
-    tbody tr td:last-child { border-right: none; }
-    tbody tr:last-child td { border-bottom: none; }
-    tbody tr:nth-child(even) { background: #fafafa; }
-    tbody tr:hover { background: #f1f5f9; }
-
-    /* Status Colors */
-    .status-ok { background: var(--good-bg); color: var(--good); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
-    .status-warn { background: var(--warn-bg); color: var(--warn); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
-    .status-bad { background: var(--bad-bg); color: var(--bad); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; display: inline-block;}
-    
-    .status-live { background: var(--good-bg); color: var(--good); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; box-shadow: 2px 2px 0px var(--border);}
-    .status-idle { background: var(--chip); color: var(--text); padding: 4px 8px; border: 2px solid var(--border); font-weight: 700; box-shadow: 2px 2px 0px var(--border);}
-
-    /* Forms & Inputs */
-    input, select, textarea {
-      border: 3px solid var(--border);
-      background: #ffffff;
-      color: var(--text);
-      padding: 10px 14px;
-      font-size: 14px;
-      font-weight: 600;
-      font-family: inherit;
-      box-shadow: var(--shadow-sm);
-      outline: none;
-    }
-    input:focus, select:focus { box-shadow: var(--shadow-md); transform: translate(-2px, -2px); }
-
-    .bulk-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-      background: #e2e8f0;
-      padding: 12px;
-      border: 3px solid var(--border);
-    }
-    .bulk-toolbar button { background: var(--primary); color: #fff; }
-
-    /* Notices */
-    .hint { margin-top: 12px; color: var(--text); font-size: 13px; font-weight: 600; border-left: 4px solid var(--primary); padding-left: 8px; }
+    /* ── Notice ─────────────────────── */
     .notice {
-      border: 3px solid var(--border);
-      padding: 12px 16px;
-      margin-bottom: 20px;
-      font-size: 15px;
-      font-weight: 700;
-      box-shadow: var(--shadow-sm);
+      border: 3px solid var(--border); padding: 12px 16px;
+      margin-bottom: 20px; font-weight: 700; box-shadow: var(--s1);
     }
-    .notice-ok { background: var(--good-bg); color: var(--good); }
-    .notice-warn { background: var(--warn-bg); color: var(--warn); }
-    .notice-error, .notice-bad { background: var(--bad-bg); color: var(--bad); }
+    .notice-ok { background: var(--good-bg); }
+    .notice-warn { background: var(--warn-bg); }
+    .notice-error, .notice-bad { background: var(--bad-bg); color: #fff; }
 
-    /* Utilities */
-    a { color: var(--border); text-decoration: underline; font-weight: 700; }
-    a:hover { background: var(--warn-bg); text-decoration: none; }
-    
-    .inline-form { display: inline-flex; gap: 8px; margin: 0; align-items: center; }
-    
-    .mini-btn { padding: 4px 10px; font-size: 12px; }
-    .mini-btn.ok { background: var(--good-bg); color: var(--good); }
-    .mini-btn.warn { background: var(--bad-bg); color: var(--bad); }
-
-    .pagination {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-top: 20px;
-      flex-wrap: wrap;
-      background: var(--panel);
-      padding: 12px;
-      border: 3px solid var(--border);
-      box-shadow: var(--shadow-sm);
+    /* ── Table card ─────────────────── */
+    .table-card {
+      background: var(--panel); border: 3px solid var(--border);
+      box-shadow: var(--s2); overflow: hidden;
     }
-    .pagination .page-info { font-weight: 700; font-size: 14px; text-transform: uppercase; }
-
-    /* Specific to detail pages */
-    .detail-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-bottom: 24px;
-      background: var(--panel);
-      padding: 24px;
-      border: 3px solid var(--border);
-      box-shadow: var(--shadow-md);
+    .table-card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 3px solid var(--border);
+      background: var(--border);
     }
-    .detail-header h1 {
-      margin: 0;
-      font-size: 32px;
-      background: var(--primary);
-      color: #fff;
-      padding: 6px 14px;
-      border: 3px solid var(--border);
-    }
-    .detail-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
+    .table-card-header h2 { font-size: 18px; color: #fff; text-transform: uppercase; }
+    .table-card-header .count-badge {
+      background: var(--warn-bg); color: var(--border);
+      border: 2px solid #fff; padding: 2px 10px;
+      font-size: 13px; font-weight: 700;
     }
 
-    .meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; margin-bottom: 24px; }
-    .item { 
-      border: 3px solid var(--border); 
-      padding: 24px; 
-      background: #fafafa; 
-      box-shadow: var(--shadow-sm); 
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      transition: all 0.2s ease;
+    /* ── Table ──────────────────────── */
+    .table-wrap { overflow: hidden; }
+    table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 14px; }
+    thead th {
+      background: #1e293b; color: #e2e8f0;
+      font-weight: 700; text-transform: uppercase;
+      font-size: 12px; letter-spacing: 0.05em;
+      padding: 12px 16px; text-align: left;
+      white-space: normal; word-break: break-word; overflow-wrap: anywhere;
+      border-bottom: 3px solid var(--border); vertical-align: top;
     }
-    .item:hover {
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
-      background: #fff;
-    }
-    .item .label { 
-      font-weight: 700; 
-      font-size: 13px; 
-      text-transform: uppercase; 
-      color: var(--muted); 
-      margin-bottom: 8px; 
-      border-bottom: 2px dashed var(--border); 
-      padding-bottom: 8px; 
-      letter-spacing: 0.5px;
-    }
-    .item .value { font-size: 18px; font-weight: 700; color: var(--text); word-break: break-word; }
+    tbody tr { border-bottom: 2px solid #e2e8f0; transition: background 0.1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fef9c3; }
+    tbody td { padding: 12px 16px; vertical-align: top; white-space: normal; word-break: break-word; overflow-wrap: anywhere; font-weight: 600; }
 
-    .description-box {
-      border: 3px solid var(--border);
-      padding: 24px;
-      background: #fdf8e3; /* Light yellow background */
-      box-shadow: var(--shadow-md);
-      margin-top: 24px;
+    /* ── Status badges ──────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border: 2px solid var(--border);
+      font-size: 12px; font-weight: 700; text-transform: uppercase;
+      box-shadow: 1px 1px 0 var(--border);
     }
-    .description-box .label {
-      font-weight: 700;
-      font-size: 18px;
-      text-transform: uppercase;
-      margin-bottom: 16px;
-      display: inline-block;
-      background: var(--text);
-      color: #fff;
-      padding: 6px 14px;
-      border: 3px solid var(--text);
+    .badge-ok { background: var(--good-bg); }
+    .badge-warn { background: var(--warn-bg); }
+    .badge-bad { background: var(--bad-bg); color: #fff; }
+    .badge-idle { background: var(--chip); }
+    .badge::before { content: '●'; font-size: 8px; }
+
+    /* ── User info cell ─────────────── */
+    .user-cell { display: flex; flex-direction: column; gap: 2px; }
+    .user-cell .name { font-weight: 700; font-size: 14px; }
+    .user-cell .username { font-size: 12px; color: var(--muted); font-weight: 600; }
+
+    /* ── Threshold bar ──────────────── */
+    .threshold-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .threshold-bar-bg {
+      height: 6px; background: #e2e8f0;
+      border: 1px solid var(--border); border-radius: 0;
+      overflow: hidden;
     }
-    .description-box .value {
-      font-size: 16px;
-      font-weight: 600;
-      white-space: pre-wrap;
-      line-height: 1.6;
+    .threshold-bar-fill {
+      height: 100%; background: var(--bad-bg);
+      transition: width 0.3s;
+    }
+    .threshold-bar-fill.safe { background: var(--good-bg); }
+    .threshold-bar-fill.warn { background: var(--warn-bg); }
+    .threshold-text { font-size: 12px; font-weight: 700; color: var(--muted); }
+
+    /* ── Action buttons ─────────────── */
+    .action-group { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+      padding: 3px 8px;
+      border: 2px solid var(--border); font-family: inherit;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      cursor: pointer; text-decoration: none; color: var(--text);
+      background: var(--panel); box-shadow: var(--s1); transition: all 0.1s;
+      white-space: nowrap; line-height: 1.4;
+    }
+    .btn:hover { transform: translate(-1px,-1px); box-shadow: var(--s2); }
+    .btn:active { transform: translate(1px,1px); box-shadow: none; }
+    .btn-approve { background: var(--good-bg); }
+    .btn-reject { background: var(--bad-bg); color: #fff; }
+    .btn-done { background: var(--chip); color: var(--muted); cursor: default; font-size: 11px; }
+    .btn-done:hover { transform: none; box-shadow: var(--s1); }
+
+    /* ── Hint ───────────────────────── */
+    .hint {
+      padding: 12px 20px; border-top: 3px solid var(--border);
+      background: #fef9c3; font-size: 13px; font-weight: 600;
+      border-left: 4px solid var(--primary); color: var(--text);
     }
 
-    .msg { border: 3px solid var(--border); margin-bottom: 12px; background: #fff; box-shadow: var(--shadow-sm); padding: 0; }
-    .msg .sender { background: var(--border); color: #fff; padding: 6px 12px; font-weight: 700; font-size: 13px; }
-    .msg .time { padding: 4px 12px; font-size: 12px; background: #f1f5f9; border-bottom: 2px solid var(--border); font-weight: 600; }
-    .msg pre { margin: 0; padding: 12px; white-space: pre-wrap; word-break: break-word; font-family: 'Space Grotesk', monospace; font-weight: 600; font-size: 14px; }
-    .msg img { border: 3px solid var(--border); border-radius: 0 !important; box-shadow: 2px 2px 0px var(--border); }
-    .msg .photo-container { padding: 12px 12px 0 12px; }
+    /* ── Empty state ────────────────── */
+    .empty-state {
+      text-align: center; padding: 60px 20px;
+      color: var(--muted); font-size: 15px; font-weight: 600;
+    }
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
 
-    /* Login Specific */
-    .login-panel { width: min(420px, calc(100vw - 32px)); margin: 10vh auto; }
-    form label { font-weight: 700; text-transform: uppercase; font-size: 14px; margin-top: 8px; display: block;}
-    form input { margin-top: 4px; margin-bottom: 12px; width: 100%;}
-    form button[type="submit"] { width: 100%; padding: 12px; font-size: 16px; background: var(--primary); color: #fff;}
-    
     @media (max-width: 768px) {
-      .layout-wrapper { flex-direction: column; }
+      .layout { flex-direction: column; }
       .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 3px solid var(--border); }
-      .main-content { max-width: 100%; padding: 16px; }
-      .detail-header { flex-direction: column; align-items: flex-start; }
+      .main { padding: 16px; }
+    }
+
+    @media (max-width: 640px) {
+      .page-header, .table-card { border-width: 2px; box-shadow: 2px 2px 0 #111; }
+      .table-card-header { padding: 12px 14px; }
+      .table-wrap { overflow: hidden; }
+      .table-wrap table,
+      .table-wrap thead,
+      .table-wrap tbody,
+      .table-wrap tr,
+      .table-wrap td { display: block; width: 100%; }
+      .table-wrap thead { display: none; }
+      .table-wrap tbody tr {
+        margin: 12px 0;
+        border: 2px solid var(--border);
+        background: var(--panel);
+        box-shadow: var(--s1);
+      }
+      .table-wrap tbody td {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border-right: none;
+        border-bottom: 1px dashed #cbd5e1;
+        white-space: normal;
+      }
+      .table-wrap tbody td::before {
+        content: attr(data-label);
+        flex: 0 0 42%;
+        max-width: 42%;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .table-wrap tbody td:last-child { border-bottom: none; }
+      .action-group { justify-content: flex-start; width: 100%; }
     }
   </style>
 </head>
 <body>
-  <div class="layout-wrapper">
-        <aside class="sidebar">
-      <h2>LoveMatchID</h2>
+  <div class="layout">
+    <aside class="sidebar">
+      <span class="logo">LoveMatchID</span>
       <nav>
         <a href="/">Dashboard</a>
         <a href="/users">Daftar User</a>
-        <a href="/reports">Daftar Report</a>
+        <a href="/reports" class="active">Daftar Report</a>
         <a href="/matches">Riwayat Match</a>
         <a href="/chats">Active Chats</a>
-        <form class="logout-form" method="post" action="/logout">
+      </nav>
+      <div class="logout-wrap">
+        <form method="post" action="/logout">
           <button type="submit" class="logout-btn">Logout</button>
         </form>
-      </nav>
-    </aside>
-    <main class="main-content">
-  <div class="container">
-    <div class="topbar">
-      <div>
-        <h1>LoveMatchID • Admin Dashboard</h1>
-        <div class="sub">Snapshot data terbaru • {{ summary.generated_at }} • Login: {{ dashboard_username }}</div>
       </div>
-      
-    </div>
+    </aside>
 
-    {% if message_text %}
-      <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
-    {% endif %}
+    <main class="main">
+      <div class="page-header">
+        <h1>Daftar Report</h1>
+        <div class="sub">{{ reports | length }} report ditampilkan • Login: {{ dashboard_username }}</div>
+      </div>
 
-    <div class="section">
-<h2>Daftar Report</h2>
-      <div class="table-container">
-<table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Status</th>
-            <th>Alasan</th>
-            <th>Pelapor</th>
-            <th>Dilaporkan</th>
-            <th>Akumulasi OK</th>
-            <th>Dibuat</th>
-            <th>Direview</th>
-            <th>Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for report in reports %}
-            <tr>
-              <td>{{ report.id }}</td>
-              <td>
-                {% if report.status == 'open' %}
-                  <span class="status-bad">open</span>
-                {% elif report.status == 'approved' %}
-                  <span class="status-ok">approved</span>
-                {% else %}
-                  <span class="status-warn">rejected</span>
-                {% endif %}
-              </td>
-              <td>{{ report.reason }}</td>
-              <td>{{ report.reporter_name }} ({{ report.reporter_username }})</td>
-              <td>{{ report.reported_name }} ({{ report.reported_username }})</td>
-              <td>{{ report.approved_reports_count }}/{{ summary.auto_ban_threshold }}</td>
-              <td>{{ report.created_at }}</td>
-              <td>{{ report.reviewed_at }}</td>
-              <td>
-                <form class="inline-form" method="post" action="/reports/{{ report.id }}/review">
-                  <input type="hidden" name="page" value="{{ user_page.page }}">
-                  <input type="hidden" name="next" value="reports">
-                  <input type="hidden" name="action" value="approve">
-                  <button class="mini-btn ok" type="submit">Setujui</button>
-                </form>
-                <form class="inline-form" method="post" action="/reports/{{ report.id }}/review">
-                  <input type="hidden" name="page" value="{{ user_page.page }}">
-                  <input type="hidden" name="next" value="reports">
-                  <input type="hidden" name="action" value="reject">
-                  <button class="mini-btn warn" type="submit">Tolak</button>
-                </form>
-              </td>
-            </tr>
+      {% if message_text %}
+        <div class="notice notice-{{ message_level }}">{{ message_text }}</div>
+      {% endif %}
+
+      <div class="table-card">
+        <div class="table-card-header">
+          <h2>Laporan Masuk</h2>
+          <span class="count-badge">{{ reports | length }} Report</span>
+        </div>
+
+        <div class="table-wrap">
+          {% if reports %}
+          <table>
+            <thead>
+              <tr>
+                <th style="width:5%">#</th>
+                <th style="width:10%">Status</th>
+                <th style="width:18%">Alasan</th>
+                <th style="width:17%">Pelapor</th>
+                <th style="width:17%">Dilaporkan</th>
+                <th style="width:13%">Akumulasi</th>
+                <th style="width:10%">Dibuat</th>
+                <th style="width:10%">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for report in reports %}
+                <tr>
+                  <td data-label="#" style="color:var(--muted); font-size:12px;">{{ loop.index }}</td>
+
+                  <td data-label="Status">
+                    {% if report.status == 'open' %}
+                      <span class="badge badge-bad">Open</span>
+                    {% elif report.status == 'approved' %}
+                      <span class="badge badge-ok">Disetujui</span>
+                    {% else %}
+                      <span class="badge badge-idle">Ditolak</span>
+                    {% endif %}
+                  </td>
+
+                  <td data-label="Alasan">{{ report.reason }}</td>
+
+                  <td data-label="Pelapor">
+                    <div class="user-cell">
+                      <span class="name">{{ report.reporter_name }}</span>
+                      <span class="username">{{ report.reporter_username }}</span>
+                    </div>
+                  </td>
+
+                  <td data-label="Dilaporkan">
+                    <div class="user-cell">
+                      <span class="name">{{ report.reported_name }}</span>
+                      <span class="username">{{ report.reported_username }}</span>
+                    </div>
+                  </td>
+
+                  <td data-label="Akumulasi">
+                    {% set pct = (report.approved_reports_count / summary.auto_ban_threshold * 100) | int %}
+                    <div class="threshold-wrap">
+                      <div class="threshold-bar-bg">
+                        <div class="threshold-bar-fill {% if pct < 50 %}safe{% elif pct < 80 %}warn{% endif %}"
+                             style="width: {{ [pct, 100] | min }}%"></div>
+                      </div>
+                      <span class="threshold-text">{{ report.approved_reports_count }} / {{ summary.auto_ban_threshold }}</span>
+                    </div>
+                  </td>
+
+                  <td data-label="Dibuat" style="font-size:12px; color:var(--muted);">{{ report.created_at }}</td>
+
+                  <td data-label="Aksi" style="white-space:nowrap;">
+                    {% if report.status == 'open' %}
+                      <div class="action-group">
+                        <form method="post" action="/reports/{{ report.id }}/review" style="margin:0; display:inline;">
+                          <input type="hidden" name="action" value="approve">
+                          <input type="hidden" name="next" value="reports">
+                          <button class="btn btn-approve" type="submit"
+                                  onclick="return confirm('Setujui report ini?')">✓ Setujui</button>
+                        </form>
+                        <form method="post" action="/reports/{{ report.id }}/review" style="margin:0; display:inline;">
+                          <input type="hidden" name="action" value="reject">
+                          <input type="hidden" name="next" value="reports">
+                          <button class="btn btn-reject" type="submit"
+                                  onclick="return confirm('Tolak report ini?')">✕ Tolak</button>
+                        </form>
+                      </div>
+                    {% else %}
+                      <span class="btn btn-done">Selesai</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
           {% else %}
-            <tr>
-              <td colspan="9">Tidak ada report aktif yang perlu ditampilkan.</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-</div>
-      <div class="hint">Report yang disetujui ikut dihitung ke threshold auto-ban. Saat mencapai {{ summary.auto_ban_threshold }} report disetujui, user otomatis diban.</div>
-    </div>
-  </div>
+            <div class="empty-state">
+              <div class="icon">📋</div>
+              Tidak ada report yang perlu ditinjau.
+            </div>
+          {% endif %}
+        </div>
 
-  <script>
-    const selectAllUsers = document.getElementById("select-all-users");
-    const userCheckboxes = document.querySelectorAll(".user-checkbox");
-    const bulkForm = document.getElementById("bulk-users-form");
-
-    if (selectAllUsers) {
-      selectAllUsers.addEventListener("change", function () {
-        userCheckboxes.forEach((checkbox) => {
-          checkbox.checked = selectAllUsers.checked;
-        });
-      });
-    }
-
-    if (bulkForm) {
-      bulkForm.addEventListener("submit", function (event) {
-        const checked = Array.from(userCheckboxes).filter((item) => item.checked).length;
-        if (checked === 0) {
-          event.preventDefault();
-          alert("Pilih minimal satu user dulu.");
-          return;
-        }
-
-        const actionSelect = bulkForm.querySelector('select[name="action"]');
-        if (actionSelect && actionSelect.value === "delete") {
-          const ok = confirm(`Yakin hapus ${checked} user sekaligus?`);
-          if (!ok) {
-            event.preventDefault();
-          }
-        }
-      });
-    }
-  </script>
+        <div class="hint">
+          Report yang disetujui dihitung ke threshold auto-ban.
+          Saat mencapai <strong>{{ summary.auto_ban_threshold }}</strong> report disetujui, user otomatis diban.
+        </div>
+      </div>
     </main>
   </div>
 </body>

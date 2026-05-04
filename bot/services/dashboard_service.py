@@ -85,13 +85,15 @@ class DashboardService:
 
             current_started_at = user.get("chat_started_at")
             if current_started_at and (
-                not existing.get("started_at") or current_started_at < existing.get("started_at")
+                not existing.get("started_at")
+                or current_started_at < existing.get("started_at")
             ):
                 existing["started_at"] = current_started_at
 
             current_updated_at = user.get("last_updated")
             if current_updated_at and (
-                not existing.get("updated_at") or current_updated_at > existing.get("updated_at")
+                not existing.get("updated_at")
+                or current_updated_at > existing.get("updated_at")
             ):
                 existing["updated_at"] = current_updated_at
 
@@ -133,16 +135,26 @@ class DashboardService:
             last_message = messages[-1] if messages else None
             overview_map[key] = {
                 "message_count": len(messages),
-                "last_message_text": (last_message or {}).get("text") if last_message else None,
-                "last_message_sender": (last_message or {}).get("sender_id") if last_message else None,
-                "last_message_at": (last_message or {}).get("sent_at") if last_message else None,
+                "last_message_text": (
+                    (last_message or {}).get("text") if last_message else None
+                ),
+                "last_message_sender": (
+                    (last_message or {}).get("sender_id") if last_message else None
+                ),
+                "last_message_at": (
+                    (last_message or {}).get("sent_at") if last_message else None
+                ),
                 "chat_started_at": doc.get("started_at"),
                 "chat_updated_at": doc.get("updated_at"),
             }
         return overview_map
 
     def _normalize_messages(self, messages: list[dict], start_index: int = 0):
-        sender_ids = [item.get("sender_id") for item in messages if isinstance(item.get("sender_id"), int)]
+        sender_ids = [
+            item.get("sender_id")
+            for item in messages
+            if isinstance(item.get("sender_id"), int)
+        ]
         user_map = self._build_user_map(sender_ids)
 
         normalized = []
@@ -153,9 +165,15 @@ class DashboardService:
                 {
                     "message_index": start_index + offset,
                     "sender_id": sender_id,
-                    "sender_name": sender.get("name") or str(sender_id) or "Tidak diketahui",
+                    "sender_name": sender.get("name")
+                    or str(sender_id)
+                    or "Tidak diketahui",
                     "sender_username": sender.get("username") or "-",
-                    "sent_at_formatted": format_utc(message.get("sent_at")) if message.get("sent_at") else "-",
+                    "sent_at_formatted": (
+                        format_utc(message.get("sent_at"))
+                        if message.get("sent_at")
+                        else "-"
+                    ),
                     "text": message.get("text") or "",
                     "photo_id": message.get("photo_id"),
                 }
@@ -173,7 +191,9 @@ class DashboardService:
         if telegram_id is None:
             return 0
         day_key, day_start, day_end = self._current_day_context()
-        return self.seen_repo.count_viewed_for_day(telegram_id, day_key, day_start, day_end)
+        return self.seen_repo.count_viewed_for_day(
+            telegram_id, day_key, day_start, day_end
+        )
 
     def _approved_report_count(self, telegram_id: int | None) -> int:
         if telegram_id is None:
@@ -240,7 +260,11 @@ class DashboardService:
                     "username": format_username(user.get("username")),
                     "active": "Ya" if user.get("is_active", True) else "Tidak",
                     "is_banned": is_temporarily_banned(user),
-                    "ban_until": format_utc(user.get("ban_until")) if user.get("ban_until") else "-",
+                    "ban_until": (
+                        format_utc(user.get("ban_until"))
+                        if user.get("ban_until")
+                        else "-"
+                    ),
                     "created_at": format_utc(user.get("created_at")),
                     "latitude": latitude,
                     "longitude": longitude,
@@ -248,7 +272,9 @@ class DashboardService:
                     "approved_reports_count": self._approved_report_count(telegram_id),
                     "open_reports_count": self._open_report_count(telegram_id),
                     "daily_views_used": daily_views_used,
-                    "daily_views_remaining": max(DAILY_PROFILE_VIEW_LIMIT - daily_views_used, 0),
+                    "daily_views_remaining": max(
+                        DAILY_PROFILE_VIEW_LIMIT - daily_views_used, 0
+                    ),
                 }
             )
         return {
@@ -269,7 +295,9 @@ class DashboardService:
             query={"status": {"$ne": "rejected"}},
         )
 
-    def review_report(self, report_id_text: str, action: str, reviewed_by="dashboard_web"):
+    def review_report(
+        self, report_id_text: str, action: str, reviewed_by="dashboard_web"
+    ):
         return self.moderation.review_report(report_id_text, action, reviewed_by)
 
     def apply_bulk_user_action(
@@ -364,7 +392,11 @@ class DashboardService:
         try:
             object_id = ObjectId(user_id_text.strip())
         except Exception:
-            return {"ok": False, "level": "error", "message": "Format user ID tidak valid."}
+            return {
+                "ok": False,
+                "level": "error",
+                "message": "Format user ID tidak valid.",
+            }
 
         user = self.users_repo.find_by_object_id(object_id)
         if not user:
@@ -379,7 +411,9 @@ class DashboardService:
             }
 
         day_key, day_start, day_end = self._current_day_context()
-        result = self.seen_repo.delete_viewed_for_day(telegram_id, day_key, day_start, day_end)
+        result = self.seen_repo.delete_viewed_for_day(
+            telegram_id, day_key, day_start, day_end
+        )
         return {
             "ok": True,
             "level": "ok",
@@ -411,13 +445,22 @@ class DashboardService:
             "age": user.get("age", "-"),
             "gender": user.get("gender", "-"),
             "username": format_username(user.get("username")),
+            "photo_id": user.get("photo_file_id") or None,
             "description": user.get("description") or "(tidak ada bio)",
             "compatibility_value": user.get("compatibility_value") or "-",
-            "compatibility_communication_style": user.get("compatibility_communication_style") or "-",
-            "compatibility_relationship_goal": user.get("compatibility_relationship_goal") or "-",
+            "compatibility_communication_style": user.get(
+                "compatibility_communication_style"
+            )
+            or "-",
+            "compatibility_relationship_goal": user.get(
+                "compatibility_relationship_goal"
+            )
+            or "-",
             "is_active": user.get("is_active", True),
             "is_banned": is_temporarily_banned(user),
-            "ban_until": format_utc(user.get("ban_until")) if user.get("ban_until") else "-",
+            "ban_until": (
+                format_utc(user.get("ban_until")) if user.get("ban_until") else "-"
+            ),
             "ban_reason": user.get("ban_reason") or "-",
             "age_group": user.get("age_group") or "-",
             "created_at": format_utc(user.get("created_at")),
@@ -431,7 +474,9 @@ class DashboardService:
             "rejected_reports_count": self._rejected_report_count(telegram_id),
             "daily_views_used": daily_views_used,
             "daily_view_limit": DAILY_PROFILE_VIEW_LIMIT,
-            "daily_views_remaining": max(DAILY_PROFILE_VIEW_LIMIT - daily_views_used, 0),
+            "daily_views_remaining": max(
+                DAILY_PROFILE_VIEW_LIMIT - daily_views_used, 0
+            ),
             "auto_ban_threshold": AUTO_REPORT_BAN_THRESHOLD,
         }
 
@@ -462,8 +507,12 @@ class DashboardService:
                     "second_name": second_user.get("name") or "Tanpa Nama",
                     "first_username": first_user.get("username") or "-",
                     "second_username": second_user.get("username") or "-",
-                    "started_at": format_utc(item.get("started_at") or chat_data.get("chat_started_at")),
-                    "updated_at": format_utc(item.get("updated_at") or chat_data.get("chat_updated_at")),
+                    "started_at": format_utc(
+                        item.get("started_at") or chat_data.get("chat_started_at")
+                    ),
+                    "updated_at": format_utc(
+                        item.get("updated_at") or chat_data.get("chat_updated_at")
+                    ),
                     "message_count": chat_data.get("message_count", 0),
                     "last_message_at": format_utc(chat_data.get("last_message_at")),
                     "last_message_text": chat_data.get("last_message_text") or "-",
@@ -474,23 +523,29 @@ class DashboardService:
         return rows
 
     def list_match_history(self, page: int = 1, per_page: int = 30):
-        total_items = self.matches_repo.count_all()
+        total_items = self.chat_events_repo.count_all()
         current_page = max(page, 1)
         total_pages = max((total_items + per_page - 1) // per_page, 1)
         if current_page > total_pages:
             current_page = total_pages
 
         skip = (current_page - 1) * per_page
-        matches = self.matches_repo.list_recent(limit=per_page, skip=skip)
+        chat_histories = self.chat_events_repo.list_recent_pairs(
+            limit=per_page, skip=skip
+        )
 
-        realtime_pair_keys = {item.get("pair_key") for item in self._list_realtime_pairs()}
-        pair_keys = [item.get("pair_key") for item in matches if item.get("pair_key")]
+        realtime_pair_keys = {
+            item.get("pair_key") for item in self._list_realtime_pairs()
+        }
+        pair_keys = [
+            item.get("pair_key") for item in chat_histories if item.get("pair_key")
+        ]
         chat_map = self._build_chat_overview_map(pair_keys)
 
         telegram_ids = []
-        for match in matches:
-            first = match.get("first_telegram_id")
-            second = match.get("second_telegram_id")
+        for item in chat_histories:
+            pair_key = item.get("pair_key")
+            first, second = self._parse_pair_key(pair_key) if pair_key else (None, None)
             if isinstance(first, int):
                 telegram_ids.append(first)
             if isinstance(second, int):
@@ -498,10 +553,9 @@ class DashboardService:
         user_map = self._build_user_map(telegram_ids)
 
         rows = []
-        for match in matches:
-            pair_key = match.get("pair_key")
-            first = match.get("first_telegram_id")
-            second = match.get("second_telegram_id")
+        for item in chat_histories:
+            pair_key = item.get("pair_key")
+            first, second = self._parse_pair_key(pair_key) if pair_key else (None, None)
             first_user = user_map.get(first, {})
             second_user = user_map.get(second, {})
             chat_data = chat_map.get(pair_key, {})
@@ -510,13 +564,17 @@ class DashboardService:
                     "pair_key": pair_key,
                     "first": first,
                     "second": second,
-                    "first_name": first_user.get("name") or match.get("first_name") or "Tanpa Nama",
-                    "second_name": second_user.get("name") or match.get("second_name") or "Tanpa Nama",
+                    "first_name": first_user.get("name") or "Tanpa Nama",
+                    "second_name": second_user.get("name") or "Tanpa Nama",
                     "first_username": first_user.get("username") or "-",
                     "second_username": second_user.get("username") or "-",
                     "is_active_realtime": pair_key in realtime_pair_keys,
-                    "created_at": format_utc(match.get("created_at")),
-                    "updated_at": format_utc(match.get("updated_at")),
+                    "created_at": format_utc(
+                        item.get("started_at") or item.get("created_at")
+                    ),
+                    "updated_at": format_utc(
+                        item.get("updated_at") or item.get("started_at")
+                    ),
                     "message_count": chat_data.get("message_count", 0),
                     "last_message_at": format_utc(chat_data.get("last_message_at")),
                 }
@@ -540,14 +598,18 @@ class DashboardService:
             return None
 
         match = self.matches_repo.find_by_pair_key(pair_key)
-        if not match:
-            return None
 
-        realtime_pair_keys = {item.get("pair_key") for item in self._list_realtime_pairs()}
+        realtime_pair_keys = {
+            item.get("pair_key") for item in self._list_realtime_pairs()
+        }
         user_map = self._build_user_map([first, second])
         chat_overview = self.chat_events_repo.get_pair_overview(first, second) or {}
+        if not match and not chat_overview:
+            return None
 
-        messages = self.chat_events_repo.list_messages_by_pair(first, second, limit=message_limit)
+        messages = self.chat_events_repo.list_messages_by_pair(
+            first, second, limit=message_limit
+        )
         normalized_messages = self._normalize_messages(messages)
 
         first_user = user_map.get(first, {})
@@ -558,17 +620,27 @@ class DashboardService:
         return {
             "pair_key": pair_key,
             "is_active_realtime": pair_key in realtime_pair_keys,
-            "created_at": format_utc(match.get("created_at")),
-            "updated_at": format_utc(match.get("updated_at")),
+            "created_at": format_utc(
+                (match or {}).get("created_at")
+                or chat_overview.get("started_at")
+                or chat_overview.get("created_at")
+            ),
+            "updated_at": format_utc(
+                (match or {}).get("updated_at") or chat_overview.get("updated_at")
+            ),
             "first": {
                 "telegram_id": first,
-                "name": first_user.get("name") or match.get("first_name") or "Tanpa Nama",
+                "name": first_user.get("name")
+                or (match or {}).get("first_name")
+                or "Tanpa Nama",
                 "username": first_user.get("username") or "-",
                 "is_active": first_user.get("is_active", True),
             },
             "second": {
                 "telegram_id": second,
-                "name": second_user.get("name") or match.get("second_name") or "Tanpa Nama",
+                "name": second_user.get("name")
+                or (match or {}).get("second_name")
+                or "Tanpa Nama",
                 "username": second_user.get("username") or "-",
                 "is_active": second_user.get("is_active", True),
             },
@@ -576,7 +648,9 @@ class DashboardService:
                 "started_at": format_utc(chat_overview.get("started_at")),
                 "updated_at": format_utc(chat_overview.get("updated_at")),
                 "message_count": len(chat_messages),
-                "last_message_at": format_utc(last_message.get("sent_at")) if last_message else "-",
+                "last_message_at": (
+                    format_utc(last_message.get("sent_at")) if last_message else "-"
+                ),
             },
             "messages": normalized_messages,
         }
@@ -588,7 +662,9 @@ class DashboardService:
         messages = self.chat_events_repo.list_messages_by_pair(low, high, limit=1000)
         return self._normalize_messages(messages)
 
-    def get_chat_transcript_incremental(self, pair_key: str, after_index: int = -1, limit: int = 200):
+    def get_chat_transcript_incremental(
+        self, pair_key: str, after_index: int = -1, limit: int = 200
+    ):
         low, high = self._parse_pair_key(pair_key)
         if low is None or high is None:
             return None

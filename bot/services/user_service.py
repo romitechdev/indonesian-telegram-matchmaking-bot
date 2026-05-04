@@ -61,7 +61,9 @@ class UserService:
         return self.users_repo.update_by_telegram_id(telegram_id, updates)
 
     def set_active(self, telegram_id: int, is_active: bool):
-        return self.users_repo.update_by_telegram_id(telegram_id, {"is_active": is_active})
+        return self.users_repo.update_by_telegram_id(
+            telegram_id, {"is_active": is_active}
+        )
 
     def list_recent_users(self, limit: int = 50):
         return self.users_repo.list_recent(limit)
@@ -99,7 +101,13 @@ class UserService:
             return {"status": "deleted"}
         return {"status": "not_found"}
 
-    def set_temp_ban(self, target_telegram_id: int, duration_hours: int, reason: str, admin_user_id: int):
+    def set_temp_ban(
+        self,
+        target_telegram_id: int,
+        duration_hours: int,
+        reason: str,
+        admin_user_id: int,
+    ):
         ban_until = now_utc() + timedelta(hours=duration_hours)
         updates = {
             "ban_until": ban_until,
