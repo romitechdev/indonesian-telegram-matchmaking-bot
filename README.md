@@ -1,38 +1,38 @@
 # LoveMatchID
 
-Telegram bot + dashboard web untuk matchmaking dan chat anonim ringan, dengan operasional 24/7 via systemd.
+A Telegram bot + web dashboard for light matchmaking and anonymous chat, running 24/7 via systemd.
 
-## Fitur Utama
+## Main Features
 
-- Onboarding profil: nama, umur, gender, deskripsi, lokasi, foto.
-- Matching dan chat antarpengguna.
-- Kirim pesan teks dan gambar (photo atau document image).
-- Moderasi: report, block, temporary ban.
-- Dashboard web: user, report, match history, chat transcript.
-- Broadcast admin ke seluruh pengguna.
+- Profile onboarding: name, age, gender, description, location, photo.
+- Matching and user-to-user chat.
+- Send text messages and images (photo or document image).
+- Moderation: report, block, temporary ban.
+- Web dashboard: users, reports, match history, chat transcripts.
+- Admin broadcast to all users.
 
-## Struktur Proyek
+## Project Structure
 
-- bot: aplikasi bot Telegram (handler, service, repository).
-- templates: halaman dashboard web.
-- tools/ops: skrip utilitas operasional.
-- tools/tests: skrip uji/manual test.
-- main.py: entrypoint bot.
-- dashboard_web.py: entrypoint dashboard.
-- docker-compose.yml: MongoDB container.
-- lovematchid-bot.service: unit systemd bot.
-- lovematchid-dashboard.service: unit systemd dashboard.
+- bot: the Telegram bot application (handlers, services, repositories).
+- templates: the web dashboard pages.
+- tools/ops: operational utility scripts.
+- tools/tests: test/manual test scripts.
+- main.py: the bot entrypoint.
+- dashboard_web.py: the dashboard entrypoint.
+- docker-compose.yml: the MongoDB container.
+- lovematchid-bot.service: the bot systemd unit.
+- lovematchid-dashboard.service: the dashboard systemd unit.
 
-## Prasyarat
+## Prerequisites
 
 - Linux server
 - Python 3.12+
 - MongoDB (container via Docker Compose)
-- Token bot Telegram
+- Telegram bot token
 
-## Setup Cepat
+## Quick Setup
 
-1. Buat virtual environment dan install dependency.
+1. Create a virtual environment and install dependencies.
 
 ```bash
 cd /home/romi/lovematchid
@@ -41,26 +41,26 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-2. Siapkan file environment.
+2. Prepare the environment file.
 
 ```env
 MONGODB_URI=mongodb://localhost:27017
-TELEGRAM_TOKEN=isi_token_bot
+TELEGRAM_TOKEN=bot_token
 ADMIN_TELEGRAM_IDS=123456789
 DASHBOARD_AUTH_USERNAME=admin_dashboard
-DASHBOARD_AUTH_PASSWORD=ganti_password_kuat
-DASHBOARD_SESSION_SECRET=ganti_session_secret_acak
+DASHBOARD_AUTH_PASSWORD=change_to_strong_password
+DASHBOARD_SESSION_SECRET=change_to_random_session_secret
 DASHBOARD_HOST=0.0.0.0
 DASHBOARD_PORT=8090
 ```
 
-3. Jalankan MongoDB.
+3. Run MongoDB.
 
 ```bash
 docker compose -f /home/romi/lovematchid/docker-compose.yml up -d mongodb
 ```
 
-4. Jalankan bot dan dashboard manual.
+4. Run the bot and dashboard manually.
 
 ```bash
 source .venv/bin/activate
@@ -72,7 +72,7 @@ source .venv/bin/activate
 python dashboard_web.py
 ```
 
-## Menjalankan via systemd
+## Running via systemd
 
 ```bash
 sudo cp /home/romi/lovematchid/lovematchid-bot.service /etc/systemd/system/
@@ -81,44 +81,44 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now lovematchid-bot.service lovematchid-dashboard.service
 ```
 
-Cek status:
+Check status:
 
 ```bash
 sudo systemctl status lovematchid-bot.service
 sudo systemctl status lovematchid-dashboard.service
 ```
 
-## Operasional Harian
+## Daily Operations
 
-Restart layanan:
+Restart services:
 
 ```bash
 sudo systemctl restart lovematchid-bot.service
 sudo systemctl restart lovematchid-dashboard.service
 ```
 
-Lihat log:
+View logs:
 
 ```bash
 sudo journalctl -u lovematchid-bot.service -f
 sudo journalctl -u lovematchid-dashboard.service -f
 ```
 
-## Broadcast Pengumuman
+## Announcement Broadcast
 
-Gunakan skrip:
+Use the script:
 
 ```bash
 source .venv/bin/activate
 python tools/ops/broadcast_update.py
 ```
 
-Catatan:
+Notes:
 
-- Target broadcast memakai seluruh telegram_id valid (int32 dan int64).
-- Kegagalan Forbidden umumnya karena user memblokir bot atau akun tidak aktif.
+- The broadcast target uses all valid telegram_id values (int32 and int64).
+- Forbidden failures are generally caused by the user blocking the bot or an inactive account.
 
-## Dokumentasi Tambahan
+## Additional Documentation
 
-- Panduan admin rinci: PANDUAN_ADMIN.md
-- Riwayat perubahan: CHANGELOG.md
+- Detailed admin guide: PANDUAN_ADMIN.md
+- Change history: CHANGELOG.md
