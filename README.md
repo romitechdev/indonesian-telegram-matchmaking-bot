@@ -122,3 +122,7 @@ Notes:
 
 - Detailed admin guide: PANDUAN_ADMIN.md
 - Change history: CHANGELOG.md
+
+<!-- last-updated -->
+_Last updated: 2026-09-05_
+
